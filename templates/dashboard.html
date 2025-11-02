@@ -1,32 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}All Items - CS2 Market Tracker{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <h1>CS2 Item List (Items)</h1>
+    <h1>Project Dashboard</h1>
+    <p>Displaying advanced SQL query results from Project Part 2.</p>
+
+    <h2>Query 1: Recent Transactions (Last 60 Days)</h2>
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Market Name</th>
-                <th>Game</th>
-                <th>Rarity</th>
-                <th>Exterior</th>
+                <th>User</th>
+                <th>Item</th>
+                <th>Platform</th>
+                <th>Side</th>
+                <th>Date</th>
+                <th>Price</th>
             </tr>
         </thead>
         <tbody>
-            {% for item in items %}
+            {% for row in transactions %}
             <tr>
-                <td>{{ item.item_id }}</td>
-                <td>
-                    <a href="{{ url_for('item_detail', item_id=item.item_id) }}">
-                        {{ item.market_name }}
-                    </a>
-                </td>
-                <td>{{ item.game }}</td>
-                <td>{{ item.rarity }}</td>
-                <td>{{ item.exterior }}</td>
+                <td>{{ row.display_name }}</td>
+                <td>{{ row.market_name }}</td>
+                <td>{{ row.platform_name }}</td>
+                <td>{{ row.side }}</td>
+                <td>{{ row.ts.strftime('%Y-%m-%d') }}</td>
+                <td>{{ "%.2f"|format(row.price) }}</td>
             </tr>
+            {% else %}
+            <tr><td colspan="6">No recent transactions found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <h2>Query 2: User Portfolio Value (min. 2 items)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Est. Market Value</th>
+                <th>Avg. Cost Across Items</th>
+                <th>Distinct Items</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in portfolios %}
+            <tr>
+                <td>{{ row.display_name }}</td>
+                <td>{{ "%.2f"|format(row.est_market_value) }}</td>
+                <td>{{ "%.2f"|format(row.avg_cost_across_items) }}</td>
+                <td>{{ row.distinct_items }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No portfolio data found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Query 3: Platform Sales Overview (Last 7 Days)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Platform Name</th>
+                <th>Total Sales</th>
+                <th>Avg. Sale Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in platforms %}
+            <tr>
+                <td>{{ row.platform_name }}</td>
+                <td>{{ row.n_sales }}</td>
+                <td>{{ "%.2f"|format(row.avg_sale_price) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">No platform sales data found.</td></tr>
             {% endfor %}
         </tbody>
     </table>
