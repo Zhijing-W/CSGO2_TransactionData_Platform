@@ -1,31 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>All Users</title>
-    <style>
-        body { font-family: sans-serif; margin: 2em; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .action-link {
-            display: inline-block;
-            margin: 1em 0;
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .action-link:hover { background-color: #0056b3; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
+{% block title %}All Users{% endblock %}
+
+{% block content %}
     <h1>User List</h1>
 
-    <a href="/users/new" class="action-link">Add a New User</a>
+    <a href="{{ url_for('user_new_form') }}" class="action-link">Add a New User</a>
 
     <table>
         <thead>
@@ -47,6 +27,4 @@
             {% endfor %}
         </tbody>
     </table>
-
-</body>
-</html>
+{% endblock %}
