@@ -1,27 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Details for {{ item.get('market_name', 'Item') }}</title>
-    <style>
-        body { font-family: sans-serif; margin: 2em; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 2em; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .details { background-color: #eee; padding: 1em; margin-bottom: 2em; }
-        .details p { margin: 0.5em 0; }
-        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
-        a { color: #0066cc; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <p><a href="/items">&larr; Back to All Items</a></p>
+{% block title %}Details for {{ item.get('market_name', 'Item') }}{% endblock %}
+
+{% block content %}
+    <p><a href="{{ url_for('items_list') }}">&larr; Back to All Items</a></p>
 
     <h1>{{ item.get('market_name', 'Item Details') }}</h1>
     
-    <div class="details">
+    <div style="background-color: #eee; padding: 1em; margin-bottom: 2em;">
         <p><strong>Item ID:</strong> {{ item_id }}</p>
         <p><strong>Game:</strong> {{ item.get('game', 'N/A') }}</p>
         <p><strong>Rarity:</strong> {{ item.get('rarity', 'N/A') }}</p>
@@ -48,9 +34,7 @@
                 <td>{{ "%.2f"|format(purchase.price) }} {{ purchase.currency }}</td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="4">No purchase records found for this item.</td>
-            </tr>
+            <tr><td colspan="4">No purchase records found for this item.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -76,9 +60,7 @@
                 <td>{{ "%.2f"|format(sale.fee) }} {{ sale.currency }}</td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="5">No sales records found for this item.</td>
-            </tr>
+            <tr><td colspan="5">No sales records found for this item.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -100,12 +82,8 @@
                 <td>{{ "%.2f"|format(snap.price) }} {{ snap.currency }}</td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="3">No market snapshots found for this item.</td>
-            </tr>
+            <tr><td colspan="3">No market snapshots found for this item.</td></tr>
             {% endfor %}
         </tbody>
     </table>
-
-</body>
-</html>
+{% endblock %}
