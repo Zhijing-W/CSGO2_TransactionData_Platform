@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Details for {{ item.get('market_name', 'Item') }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 2em; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .details { background-color: #eee; padding: 1em; margin-bottom: 2em; }
+        .details p { margin: 0.5em 0; }
+        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        a { color: #0066cc; }
+    </style>
+</head>
+<body>
+
+    <p><a href="/items">&larr; Back to All Items</a></p>
+
+    <h1>{{ item.get('market_name', 'Item Details') }}</h1>
+    
+    <div class="details">
+        <p><strong>Item ID:</strong> {{ item_id }}</p>
+        <p><strong>Game:</strong> {{ item.get('game', 'N/A') }}</p>
+        <p><strong>Rarity:</strong> {{ item.get('rarity', 'N/A') }}</p>
+        <p><strong>Exterior:</strong> {{ item.get('exterior', 'N/A') }}</p>
+        <p><strong>Extra:</strong> {{ item.get('extra', 'None') }}</p>
+    </div>
+
+    <h2>Purchase History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>User</th>
+                <th>Platform</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for purchase in purchases %}
+            <tr>
+                <td>{{ purchase.ts.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ purchase.display_name }}</td>
+                <td>{{ purchase.platform_name }}</td>
+                <td>{{ "%.2f"|format(purchase.price) }} {{ purchase.currency }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">No purchase records found for this item.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Sales History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>User</th>
+                <th>Platform</th>
+                <th>Price</th>
+                <th>Fee</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.ts.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ sale.display_name }}</td>
+                <td>{{ sale.platform_name }}</td>
+                <td>{{ "%.2f"|format(sale.price) }} {{ sale.currency }}</td>
+                <td>{{ "%.2f"|format(sale.fee) }} {{ sale.currency }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">No sales records found for this item.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Market Snapshots</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Captured At</th>
+                <th>Platform</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for snap in snapshots %}
+            <tr>
+                <td>{{ snap.captured_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ snap.platform_name }}</td>
+                <td>{{ "%.2f"|format(snap.price) }} {{ snap.currency }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">No market snapshots found for this item.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>
