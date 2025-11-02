@@ -1,23 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>All Items</title>
-    <style>
-        body { font-family: sans-serif; margin: 2em; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #ddd; }
-        a { text-decoration: none; color: #0066cc; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
+{% block title %}All Items - CS2 Market Tracker{% endblock %}
+
+{% block content %}
     <h1>CS2 Item List (Items)</h1>
-
     <table>
         <thead>
             <tr>
@@ -33,7 +19,9 @@
             <tr>
                 <td>{{ item.item_id }}</td>
                 <td>
-                    <a href="/item/{{ item.item_id }}">{{ item.market_name }}</a>
+                    <a href="{{ url_for('item_detail', item_id=item.item_id) }}">
+                        {{ item.market_name }}
+                    </a>
                 </td>
                 <td>{{ item.game }}</td>
                 <td>{{ item.rarity }}</td>
@@ -42,6 +30,4 @@
             {% endfor %}
         </tbody>
     </table>
-
-</body>
-</html>
+{% endblock %}
