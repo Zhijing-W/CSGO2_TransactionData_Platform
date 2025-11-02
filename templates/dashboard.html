@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}All Items - CS2 Market Tracker{% endblock %}
+
+{% block content %}
+    <h1>CS2 Item List (Items)</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Market Name</th>
+                <th>Game</th>
+                <th>Rarity</th>
+                <th>Exterior</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.item_id }}</td>
+                <td>
+                    <a href="{{ url_for('item_detail', item_id=item.item_id) }}">
+                        {{ item.market_name }}
+                    </a>
+                </td>
+                <td>{{ item.game }}</td>
+                <td>{{ item.rarity }}</td>
+                <td>{{ item.exterior }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
