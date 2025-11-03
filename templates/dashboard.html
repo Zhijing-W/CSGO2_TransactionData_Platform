@@ -4,9 +4,59 @@
 
 {% block content %}
     <h1>Project Dashboard</h1>
-    <p>Displaying advanced SQL query results from Project Part 2.</p>
+    
+    <h2>Portfolio Dashboard (Req #4)</h2>
+    <p>Aggregated portfolio value, PnL, and ROI for all users.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Total Investment</th>
+                <th>Current Market Value</th>
+                <th>Realized PnL</th>
+                <th>Unrealized PnL</th>
+                <th>Total PnL</th>
+                <th>ROI</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in portfolios %}
+            <tr>
+                <td>{{ row.display_name }}</td>
+                <td>{{ "%.2f"|format(row.total_investment) }}</td>
+                <td>{{ "%.2f"|format(row.total_market_value) }}</td>
+                
+                {% if row.total_realized_pnl > 0 %}
+                    <td style="color: green;">+{{ "%.2f"|format(row.total_realized_pnl) }}</td>
+                {% else %}
+                    <td style="color: red;">{{ "%.2f"|format(row.total_realized_pnl) }}</td>
+                {% endif %}
 
-    <h2>Query 1: Recent Transactions (Last 60 Days)</h2>
+                {% if row.total_unrealized_pnl > 0 %}
+                    <td style="color: green;">+{{ "%.2f"|format(row.total_unrealized_pnl) }}</td>
+                {% else %}
+                    <td style="color: red;">{{ "%.2f"|format(row.total_unrealized_pnl) }}</td>
+                {% endif %}
+
+                {% if row.total_pnl > 0 %}
+                    <td style="color: green; font-weight: bold;">+{{ "%.2f"|format(row.total_pnl) }}</td>
+                {% else %}
+                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(row.total_pnl) }}</td>
+                {% endif %}
+                
+                {% if row.roi_percent > 0 %}
+                    <td style="color: green; font-weight: bold;">{{ "%.2f"|format(row.roi_percent) }}%</td>
+                {% else %}
+                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(row.roi_percent) }}%</td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr><td colspan="7">No portfolio data found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Recent Transactions (Last 60 Days)</h2>
     <table>
         <thead>
             <tr>
@@ -34,31 +84,7 @@
         </tbody>
     </table>
     
-    <h2>Query 2: User Portfolio Value (min. 2 items)</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Est. Market Value</th>
-                <th>Avg. Cost Across Items</th>
-                <th>Distinct Items</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in portfolios %}
-            <tr>
-                <td>{{ row.display_name }}</td>
-                <td>{{ "%.2f"|format(row.est_market_value) }}</td>
-                <td>{{ "%.2f"|format(row.avg_cost_across_items) }}</td>
-                <td>{{ row.distinct_items }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4">No portfolio data found.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Query 3: Platform Sales Overview (Last 7 Days)</h2>
+    <h2>Platform Sales Overview (Last 7 Days)</h2>
     <table>
         <thead>
             <tr>
