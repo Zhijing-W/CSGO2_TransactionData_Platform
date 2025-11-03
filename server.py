@@ -73,8 +73,13 @@ def close_db_conn(exception):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    Handles user login.
+    GET: Shows the login form.
+    POST: Processes the login attempt.
+    """
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')) # Already logged in
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -86,23 +91,29 @@ def login():
 
         user = None
         try:
+            # Find the user by their email
             query = text("SELECT * FROM Users WHERE email = :email")
             result_row = conn.execute(query, {"email": email}).fetchone()
             
             if result_row:
-                # BUG FIX: Convert row to dict before string access
-                result = dict(result_row)
-                if check_password_hash(result['password_hash'], password):
+                # ---------------------------------------------------------
+                # THE BUG FIX IS HERE:
+                # We do NOT need to call dict().
+                # The 'result_row' object *already* supports string keys.
+                # ---------------------------------------------------------
+                if check_password_hash(result_row['password_hash'], password):
                     user = User(
-                        user_id=result['user_id'],
-                        email=result['email'],
-                        display_name=result['display_name'],
-                        password_hash=result['password_hash']
+                        user_id=result_row['user_id'],
+                        email=result_row['email'],
+                        display_name=result_row['display_name'],
+                        password_hash=result_row['password_hash']
                     )
             
             if user:
+                # Password is correct, log the user in
                 login_user(user)
                 flash(f"Welcome back, {user.display_name}!", "success")
+                # Redirect to the page they were trying to access, or dashboard
                 next_page = request.args.get('next')
                 return redirect(next_page or url_for('dashboard'))
             else:
