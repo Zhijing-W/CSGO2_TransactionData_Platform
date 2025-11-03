@@ -398,6 +398,101 @@ def purchase_create():
     return redirect(url_for('item_detail', item_id=item_id_to_use))
 
 
+# === Holdings Page Route ===
+
+@app.route('/holdings')
+def holdings_redirect():
+    """
+    A simple redirect. If a user goes to /holdings,
+    we'll just show the holdings for User 1 (Alice) as a default.
+    """
+    return redirect(url_for('holdings_for_user', user_id=1))
+
+@app.route('/holdings/<int:user_id>')
+def holdings_for_user(user_id):
+    """
+    Shows all current holdings for a specific user, calculating
+    average cost, market value, and unrealized PnL for each item.
+    """
+    conn = g.get('db_conn')
+    if conn is None:
+        flash("Database connection failed.")
+        return redirect(url_for('home'))
+
+    holdings = []
+    user_name = ""
+    
+    # This is a complex query to calculate portfolio holdings
+    query = text("""
+        WITH latest_market_price AS (
+            -- 1. Get the latest known market price for EACH item
+            SELECT DISTINCT ON (item_id)
+                   item_id,
+                   price AS market_price
+            FROM MarketSnapshots
+            ORDER BY item_id, captured_at DESC
+        ),
+        purchase_summary AS (
+            -- 2. Calculate total quantity and average cost for all BUYS
+            SELECT user_id, item_id,
+                   COUNT(*) AS qty_bought,
+                   AVG(price) AS avg_buy_cost
+            FROM Purchases
+            WHERE user_id = :uid
+            GROUP BY user_id, item_id
+        ),
+        sales_summary AS (
+            -- 3. Calculate total quantity SOLD
+            SELECT user_id, item_id,
+                   COUNT(*) AS qty_sold
+            FROM Sales
+            WHERE user_id = :uid
+            GROUP BY user_id, item_id
+        )
+        -- 4. Main query to assemble the portfolio
+        SELECT
+            p.user_id,
+            i.item_id,
+            i.market_name,
+            i.exterior,
+            COALESCE(p.qty_bought, 0) AS total_bought,
+            COALESCE(s.qty_sold, 0) AS total_sold,
+            (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) AS quantity_held,
+            p.avg_buy_cost,
+            lmp.market_price,
+            -- Unrealized PnL = (Current Price - Avg Cost) * Quantity Held
+            (lmp.market_price - p.avg_buy_cost) * (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) AS unrealized_pnl
+        FROM
+            purchase_summary p
+        LEFT JOIN
+            sales_summary s ON p.user_id = s.user_id AND p.item_id = s.item_id
+        JOIN
+            Items i ON p.item_id = i.item_id
+        LEFT JOIN
+            latest_market_price lmp ON p.item_id = lmp.item_id
+        WHERE
+            -- Only show items the user *currently holds*
+            (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) > 0
+        ORDER BY
+            i.market_name;
+    """)
+    
+    try:
+        # Get the user's name for the page title
+        user_name_result = conn.execute(text("SELECT display_name FROM Users WHERE user_id = :uid"), {"uid": user_id}).fetchone()
+        if user_name_result:
+            user_name = user_name_result['display_name']
+        
+        # Execute the main holdings query
+        result = conn.execute(query, {"uid": user_id})
+        holdings = [dict(row) for row in result.fetchall()]
+        
+    except Exception as e:
+        print(f"Error fetching holdings: {e}")
+        flash(f"Error fetching holdings: {e}")
+
+    return render_template("holdings.html", holdings=holdings, user_name=user_name, user_id=user_id)
+
 # --- Main Application Runner ---
 
 if __name__ == "__main__":
