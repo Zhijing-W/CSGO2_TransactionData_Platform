@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Holdings for {{ user_name }}{% endblock %}
+{% block title %}Holdings for {{ current_user.display_name }}{% endblock %}
 
 {% block content %}
-    <h1>Holdings for {{ user_name }} (User ID: {{ user_id }})</h1>
-    <p>This page shows all items currently held, their average cost, current market value, and unrealized profit/loss.</p>
+    <h1>Holdings for {{ current_user.display_name }}</h1>
+    <p>This page shows all items you currently hold, their average cost, current market value, and unrealized profit/loss.</p>
 
     <table>
         <thead>
@@ -42,7 +42,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="6">No holdings found for this user.</td>
+                <td colspan="6">You are not currently holding any items.</td>
             </tr>
             {% endfor %}
         </tbody>
