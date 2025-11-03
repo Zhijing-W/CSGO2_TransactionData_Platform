@@ -6,7 +6,7 @@
     <p><a href="{{ url_for('home') }}">&larr; Back to Home</a></p>
     
     <h1>Add a New Purchase Record</h1>
-    <p>This will add a purchase record. If the item (name + exterior) does not exist in the catalog, it will be created.</p>
+    <p>This will add a purchase record to your personal account ({{ current_user.display_name }}).</p>
 
     <form action="{{ url_for('purchase_create') }}" method="POST">
         
@@ -31,15 +31,6 @@
 
         <fieldset>
             <legend>Transaction Details</legend>
-            <div>
-                <label for="user_id">User:</label>
-                <select id="user_id" name="user_id" required>
-                    <option value="">-- Select User --</option>
-                    {% for user in users %}
-                        <option value="{{ user.user_id }}">{{ user.display_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
             <div>
                 <label for="platform_id">Platform:</label>
                 <select id="platform_id" name="platform_id" required>
