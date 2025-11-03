@@ -30,8 +30,22 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = get_db_conn()
-    if conn is None: return None
+    """
+    This function is required by flask-login.
+    It tells the login manager how to load a user from the database
+    given a user_id (from the session cookie).
+    """
+    # ----------------------------------------------------
+    # THE BUG FIX IS HERE:
+    # We must use g.get('db_conn'), not get_db_conn()
+    conn = g.get('db_conn') 
+    # ----------------------------------------------------
+    
+    if conn is None:
+        # This can happen if the db connection fails in @before_request
+        print("Error: load_user could not get DB connection from g.")
+        return None
+        
     try:
         # FIX: Explicitly list columns
         query = text("SELECT user_id, email, display_name, password_hash FROM Users WHERE user_id = :id")
@@ -47,6 +61,8 @@ def load_user(user_id):
             )
     except Exception as e:
         print(f"Error loading user {user_id}: {e}")
+        
+    # If user_id is not found or an error occurs
     return None
 
 # --- Database Connection Management ---
