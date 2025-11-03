@@ -1,16 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard - {{ current_user.display_name }}{% endblock %}
 
 {% block content %}
-    <h1>Project Dashboard</h1>
+    <h1>Portfolio Dashboard for {{ current_user.display_name }}</h1>
     
-    <h2>Portfolio Dashboard (Req #4)</h2>
-    <p>Aggregated portfolio value, PnL, and ROI for all users.</p>
     <table>
         <thead>
             <tr>
-                <th>User</th>
                 <th>Total Investment</th>
                 <th>Current Market Value</th>
                 <th>Realized PnL</th>
@@ -22,7 +19,6 @@
         <tbody>
             {% for row in portfolios %}
             <tr>
-                <td>{{ row.display_name }}</td>
                 <td>{{ "%.2f"|format(row.total_investment) }}</td>
                 <td>{{ "%.2f"|format(row.total_market_value) }}</td>
                 
@@ -51,57 +47,7 @@
                 {% endif %}
             </tr>
             {% else %}
-            <tr><td colspan="7">No portfolio data found.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Recent Transactions (Last 60 Days)</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Item</th>
-                <th>Platform</th>
-                <th>Side</th>
-                <th>Date</th>
-                <th>Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in transactions %}
-            <tr>
-                <td>{{ row.display_name }}</td>
-                <td>{{ row.market_name }}</td>
-                <td>{{ row.platform_name }}</td>
-                <td>{{ row.side }}</td>
-                <td>{{ row.ts.strftime('%Y-%m-%d') }}</td>
-                <td>{{ "%.2f"|format(row.price) }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6">No recent transactions found.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <h2>Platform Sales Overview (Last 7 Days)</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Platform Name</th>
-                <th>Total Sales</th>
-                <th>Avg. Sale Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in platforms %}
-            <tr>
-                <td>{{ row.platform_name }}</td>
-                <td>{{ row.n_sales }}</td>
-                <td>{{ "%.2f"|format(row.avg_sale_price) }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="3">No platform sales data found.</td></tr>
+            <tr><td colspan="6">You have no portfolio data yet. Add a purchase to get started.</td></tr>
             {% endfor %}
         </tbody>
     </table>
