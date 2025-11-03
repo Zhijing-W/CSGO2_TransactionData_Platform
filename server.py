@@ -8,13 +8,14 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 
 # --- Database Configuration ---
-# IMPORTANT: Replace 'your_password' with your actual database password
-DATABASEURI = "postgresql://zw3155:your_password@w4111b.cs.columbia.edu/zw3155"
+# Your password has been added here
+DATABASEURI = "postgresql://zw3155:477430@w4111b.cs.columbia.edu/zw3155"
 
 # Create the database engine
 engine = create_engine(DATABASEURI)
 
 # --- Database Connection Management (Used by ALL routes) ---
+
 
 @app.before_request
 def get_db_conn():
