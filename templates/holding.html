@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Holdings for {{ user_name }}{% endblock %}
+
+{% block content %}
+    <h1>Holdings for {{ user_name }} (User ID: {{ user_id }})</h1>
+    <p>This page shows all items currently held, their average cost, current market value, and unrealized profit/loss.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Exterior</th>
+                <th>Qty Held</th>
+                <th>Avg. Buy Cost</th>
+                <th>Current Market Price</th>
+                <th>Unrealized PnL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in holdings %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('item_detail', item_id=item.item_id) }}">
+                        {{ item.market_name }}
+                    </a>
+                </td>
+                <td>{{ item.exterior }}</td>
+                <td>{{ item.quantity_held }}</td>
+                <td>{{ "%.2f"|format(item.avg_buy_cost) }}</td>
+                <td>{{ "%.2f"|format(item.market_price) }}</td>
+                
+                {% if item.unrealized_pnl > 0 %}
+                    <td style="color: green;">
+                        +{{ "%.2f"|format(item.unrealized_pnl) }}
+                    </td>
+                {% else %}
+                    <td style="color: red;">
+                        {{ "%.2f"|format(item.unrealized_pnl) }}
+                    </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No holdings found for this user.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
