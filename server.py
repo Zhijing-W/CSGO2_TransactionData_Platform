@@ -1,13 +1,11 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, g, flash
 from sqlalchemy import create_engine, text
-# New imports for login
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # --- App Initialization ---
 app = Flask(__name__)
-# Secret key is required for sessions and flash messages
 app.secret_key = os.urandom(24) 
 
 # --- Database Configuration ---
@@ -20,34 +18,32 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
-# --- User Class Definition for Flask-Login ---
+# --- User Class Definition ---
 class User(UserMixin):
     def __init__(self, user_id, email, display_name, password_hash):
         self.id = user_id
         self.email = email
         self.display_name = display_name
         self.password_hash = password_hash
-    
     def get_id(self):
         return str(self.id)
 
 @login_manager.user_loader
 def load_user(user_id):
     conn = get_db_conn()
-    if conn is None:
-        return None
+    if conn is None: return None
     try:
-        query = text("SELECT * FROM Users WHERE user_id = :id")
+        # FIX: Explicitly list columns
+        query = text("SELECT user_id, email, display_name, password_hash FROM Users WHERE user_id = :id")
         result_row = conn.execute(query, {"id": int(user_id)}).fetchone()
         
         if result_row:
-            # BUG FIX: Convert row to dict before string access
-            result = dict(result_row) 
+            # FIX: Access by integer index
             return User(
-                user_id=result['user_id'],
-                email=result['email'],
-                display_name=result['display_name'],
-                password_hash=result['password_hash']
+                user_id=result_row[0],
+                email=result_row[1],
+                display_name=result_row[2],
+                password_hash=result_row[3]
             )
     except Exception as e:
         print(f"Error loading user {user_id}: {e}")
@@ -73,13 +69,8 @@ def close_db_conn(exception):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """
-    Handles user login.
-    GET: Shows the login form.
-    POST: Processes the login attempt.
-    """
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard')) # Already logged in
+        return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -89,31 +80,26 @@ def login():
             flash("Database connection failed.", "danger")
             return render_template("login.html")
 
-        user = None
+        user_obj = None
         try:
-            # Find the user by their email
-            query = text("SELECT * FROM Users WHERE email = :email")
+            # FIX: Explicitly list columns, in order
+            query = text("SELECT user_id, email, display_name, password_hash FROM Users WHERE email = :email")
             result_row = conn.execute(query, {"email": email}).fetchone()
             
             if result_row:
-                # ---------------------------------------------------------
-                # THE BUG FIX IS HERE:
-                # We do NOT need to call dict().
-                # The 'result_row' object *already* supports string keys.
-                # ---------------------------------------------------------
-                if check_password_hash(result_row['password_hash'], password):
-                    user = User(
-                        user_id=result_row['user_id'],
-                        email=result_row['email'],
-                        display_name=result_row['display_name'],
-                        password_hash=result_row['password_hash']
+                # FIX: Access password_hash by index [3]
+                if check_password_hash(result_row[3], password):
+                    # FIX: Create user object using integer indices
+                    user_obj = User(
+                        user_id=result_row[0],
+                        email=result_row[1],
+                        display_name=result_row[2],
+                        password_hash=result_row[3]
                     )
             
-            if user:
-                # Password is correct, log the user in
-                login_user(user)
-                flash(f"Welcome back, {user.display_name}!", "success")
-                # Redirect to the page they were trying to access, or dashboard
+            if user_obj:
+                login_user(user_obj)
+                flash(f"Welcome back, {user_obj.display_name}!", "success")
                 next_page = request.args.get('next')
                 return redirect(next_page or url_for('dashboard'))
             else:
@@ -134,11 +120,6 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """
-    Handles new user registration.
-    GET: Shows the registration form.
-    POST: Processes the new user creation.
-    """
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
@@ -146,7 +127,6 @@ def register():
         email = request.form.get('email')
         display_name = request.form.get('display_name')
         password = request.form.get('password')
-        
         conn = g.get('db_conn')
         if conn is None:
             flash("Database connection failed.", "danger")
@@ -154,22 +134,17 @@ def register():
 
         registration_success = False
         try:
-            # Start the transaction *immediately*
             with conn.begin():
-                # Check if email or display name already exists
-                query_check = text("SELECT * FROM Users WHERE email = :email OR display_name = :name")
+                # FIX: Explicitly select one column
+                query_check = text("SELECT 1 FROM Users WHERE email = :email OR display_name = :name")
                 existing_row = conn.execute(query_check, {"email": email, "name": display_name}).fetchone()
                 
                 if existing_row:
                     flash("Email or Display Name already in use.", "danger")
-                    # Let the 'with' block exit, which will automatically ROLLBACK
                 else:
-                    # User does not exist, proceed with insert
                     password_hash = generate_password_hash(password)
-                    
                     query_max_id = text("SELECT COALESCE(MAX(user_id), 0) + 1 FROM Users")
                     new_user_id = conn.execute(query_max_id).scalar()
-
                     query_insert = text("""
                         INSERT INTO Users(user_id, email, display_name, password_hash)
                         VALUES (:id, :email, :name, :hash)
@@ -180,21 +155,16 @@ def register():
                         "name": display_name,
                         "hash": password_hash
                     })
-                    
                     flash("Registration successful! Please log in.", "success")
                     registration_success = True
-                    # Let the 'with' block exit, which will automatically COMMIT
             
-            # Now that the transaction is closed (committed or rolled back),
-            # we can safely redirect.
             if registration_success:
                 return redirect(url_for('login'))
             else:
                 return redirect(url_for('register'))
 
         except Exception as e:
-            # This is the line that was broken
-            print(f"Error during registration: {e}") 
+            print(f"Error during registration: {e}")
             flash(f"An error occurred during registration: {e}", "danger")
             
     return render_template("register.html")
@@ -208,7 +178,6 @@ def home():
     else:
         return redirect(url_for('login'))
 
-
 @app.route('/items')
 @login_required
 def items_list():
@@ -216,18 +185,25 @@ def items_list():
     if conn is None:
         flash("Database connection failed.", "danger")
         return redirect(url_for('home'))
-        
     items = []
     try:
+        # FIX: Explicitly list columns
         query = text("SELECT item_id, market_name, game, rarity, exterior FROM Items ORDER BY market_name")
         result = conn.execute(query)
-        items = [dict(row) for row in result.fetchall()]
+        # FIX: Manually build dict from tuple indices
+        items = [
+            {
+                'item_id': row[0],
+                'market_name': row[1],
+                'game': row[2],
+                'rarity': row[3],
+                'exterior': row[4]
+            } for row in result.fetchall()
+        ]
     except Exception as e:
         print(f"Error fetching items: {e}")
         flash(f"Error fetching items: {e}")
-            
     return render_template("items.html", items=items)
-
 
 @app.route('/item/<int:item_id>')
 @login_required
@@ -236,50 +212,77 @@ def item_detail(item_id):
     if conn is None:
         flash("Database connection failed.", "danger")
         return redirect(url_for('home'))
-        
+    
     item_details = {}
     purchases = []
     sales = []
     snapshots = []
     
     try:
+        # FIX: Explicit columns and manual dict creation
         query_item = text("SELECT market_name, game, rarity, exterior, extra FROM Items WHERE item_id = :id")
         result_item_row = conn.execute(query_item, {"id": item_id}).fetchone()
         if result_item_row:
-            # BUG FIX: Convert row to dict
-            item_details = dict(result_item_row)
+            item_details = {
+                'market_name': result_item_row[0],
+                'game': result_item_row[1],
+                'rarity': result_item_row[2],
+                'exterior': result_item_row[3],
+                'extra': result_item_row[4]
+            }
         
-        # These queries use fetchall(), which our code already
-        # correctly converts to [dict(row) for row in result],
-        # so they are OK.
+        # FIX: Explicit columns and manual dict creation
         query_purchases = text("""
             SELECT p.ts, p.price, p.currency, u.display_name, pf.platform_name
             FROM Purchases p
             JOIN Users u ON u.user_id = p.user_id
             JOIN Platforms pf ON pf.platform_id = p.platform_id
-            WHERE p.item_id = :id
-            ORDER BY p.ts DESC
+            WHERE p.item_id = :id ORDER BY p.ts DESC
         """)
-        purchases = [dict(row) for row in conn.execute(query_purchases, {"id": item_id}).fetchall()]
+        purchases = [
+            {
+                'ts': row[0],
+                'price': row[1],
+                'currency': row[2],
+                'display_name': row[3],
+                'platform_name': row[4]
+            } for row in conn.execute(query_purchases, {"id": item_id}).fetchall()
+        ]
         
+        # FIX: Explicit columns and manual dict creation
         query_sales = text("""
             SELECT s.ts, s.price, s.fee, s.currency, u.display_name, pf.platform_name
             FROM Sales s
             JOIN Users u ON u.user_id = s.user_id
             JOIN Platforms pf ON pf.platform_id = s.platform_id
-            WHERE s.item_id = :id
-            ORDER BY s.ts DESC
+            WHERE s.item_id = :id ORDER BY s.ts DESC
         """)
-        sales = [dict(row) for row in conn.execute(query_sales, {"id": item_id}).fetchall()]
+        sales = [
+            {
+                'ts': row[0],
+                'price': row[1],
+                'fee': row[2],
+                'currency': row[3],
+                'display_name': row[4],
+                'platform_name': row[5]
+            } for row in conn.execute(query_sales, {"id": item_id}).fetchall()
+        ]
         
+        # FIX: Explicit columns and manual dict creation
         query_snapshots = text("""
             SELECT ms.captured_at, ms.price, ms.currency, pf.platform_name
             FROM MarketSnapshots ms
             JOIN Platforms pf ON pf.platform_id = ms.platform_id
-            WHERE ms.item_id = :id
-            ORDER BY ms.captured_at DESC
+            WHERE ms.item_id = :id ORDER BY ms.captured_at DESC
         """)
-        snapshots = [dict(row) for row in conn.execute(query_snapshots, {"id": item_id}).fetchall()]
+        snapshots = [
+            {
+                'captured_at': row[0],
+                'price': row[1],
+                'currency': row[2],
+                'platform_name': row[3]
+            } for row in conn.execute(query_snapshots, {"id": item_id}).fetchall()
+        ]
 
     except Exception as e:
         print(f"Error fetching details for item_id {item_id}: {e}")
@@ -304,6 +307,8 @@ def dashboard():
 
     portfolio_results = []
     
+    # This query is complex, but the logic is sound.
+    # The fix is to manually build the dict from the final result.
     query_portfolio = text("""
         WITH latest_market_price AS (
             SELECT DISTINCT ON (item_id) item_id, price AS market_price
@@ -350,6 +355,7 @@ def dashboard():
             LEFT JOIN latest_market_price lmp ON COALESCE(p.item_id, s.item_id) = lmp.item_id
             WHERE COALESCE(p.user_id, s.user_id) = :uid
         )
+        -- 6. Final Aggregation
         SELECT
             u.display_name,
             SUM(pc.total_cost_basis) AS total_investment,
@@ -373,7 +379,19 @@ def dashboard():
     """)
 
     try:
-        portfolio_results = [dict(row) for row in conn.execute(query_portfolio, {"uid": current_user.id}).fetchall()]
+        # FIX: Manually build dict from tuple indices
+        result = conn.execute(query_portfolio, {"uid": current_user.id}).fetchall()
+        portfolio_results = [
+            {
+                'display_name': row[0],
+                'total_investment': row[1],
+                'total_market_value': row[2],
+                'total_realized_pnl': row[3],
+                'total_unrealized_pnl': row[4],
+                'total_pnl': row[5],
+                'roi_percent': row[6]
+            } for row in result
+        ]
     except Exception as e:
         print(f"Error running dashboard queries: {e}")
         flash(f"Error running dashboard queries: {e}")
@@ -390,14 +408,20 @@ def purchase_new_form():
     if conn is None:
         flash("Database connection failed.", "danger")
         return redirect(url_for('home'))
-        
     platforms = []
     try:
-        platforms = [dict(row) for row in conn.execute(text("SELECT platform_id, platform_name FROM Platforms ORDER BY platform_name")).fetchall()]
+        # FIX: Explicit columns and manual dict creation
+        query = text("SELECT platform_id, platform_name FROM Platforms ORDER BY platform_name")
+        result = conn.execute(query).fetchall()
+        platforms = [
+            {
+                'platform_id': row[0],
+                'platform_name': row[1]
+            } for row in result
+        ]
     except Exception as e:
         print(f"Error fetching platforms: {e}")
         flash(f"Error fetching platforms: {e}")
-        
     return render_template("new_purchase.html", platforms=platforms)
 
 
@@ -411,22 +435,21 @@ def purchase_create():
     price = request.form.get('price')
     currency = request.form.get('currency')
     ts = request.form.get('ts')
-    
     conn = g.get('db_conn')
     if conn is None:
         flash("Database connection failed.", "danger")
         return redirect(url_for('home'))
 
     item_id_to_use = None
-
     try:
         with conn.begin():
+            # FIX: Explicit column
             query_item = text("SELECT item_id FROM Items WHERE market_name = :name AND exterior = :ext")
             result_row = conn.execute(query_item, {"name": market_name, "ext": exterior}).fetchone()
             
             if result_row:
-                # BUG FIX: Convert row to dict to access 'item_id'
-                item_id_to_use = dict(result_row)['item_id']
+                # FIX: Access by index [0]
+                item_id_to_use = result_row[0]
                 print(f"Item found. Using existing item_id: {item_id_to_use}")
             else:
                 print(f"Item not found. Creating new item: {market_name} ({exterior})")
@@ -459,9 +482,7 @@ def purchase_create():
                 "curr": currency
             })
             print(f"Successfully inserted purchase record {new_purchase_id}")
-            
         flash("Purchase record created successfully!")
-        
     except Exception as e:
         print(f"Error during 'Get-or-Create' transaction: {e}")
         flash(f"Transaction failed. Error: {e}", "danger")
@@ -480,6 +501,8 @@ def holdings():
 
     holdings = []
     
+    # This query is complex, but the logic is sound.
+    # The fix is to manually build the dict from the final result.
     query = text("""
         WITH latest_market_price AS (
             SELECT DISTINCT ON (item_id)
@@ -499,8 +522,12 @@ def holdings():
             WHERE user_id = :uid
             GROUP BY user_id, item_id
         )
+        -- 4. Final query: explicit column names
         SELECT
-            p.user_id, i.item_id, i.market_name, i.exterior,
+            p.user_id, 
+            i.item_id, 
+            i.market_name, 
+            i.exterior,
             COALESCE(p.qty_bought, 0) AS total_bought,
             COALESCE(s.qty_sold, 0) AS total_sold,
             (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) AS quantity_held,
@@ -523,9 +550,22 @@ def holdings():
     """)
     
     try:
-        # We need to pass the current user's ID to the query
-        result = conn.execute(query, {"uid": current_user.id})
-        holdings = [dict(row) for row in result.fetchall()]
+        result = conn.execute(query, {"uid": current_user.id}).fetchall()
+        # FIX: Manually build dict from tuple indices
+        holdings = [
+            {
+                'user_id': row[0],
+                'item_id': row[1],
+                'market_name': row[2],
+                'exterior': row[3],
+                'total_bought': row[4],
+                'total_sold': row[5],
+                'quantity_held': row[6],
+                'avg_buy_cost': row[7],
+                'market_price': row[8],
+                'unrealized_pnl': row[9]
+            } for row in result
+        ]
         
     except Exception as e:
         print(f"Error fetching holdings: {e}")
