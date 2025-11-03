@@ -16,7 +16,6 @@ engine = create_engine(DATABASEURI)
 
 # --- Database Connection Management (Used by ALL routes) ---
 
-
 @app.before_request
 def get_db_conn():
     """
@@ -57,7 +56,7 @@ def items_list():
     conn = g.get('db_conn')
     if conn is None:
         flash("Database connection failed.")
-        return redirect(url_for('home')) # Or render an error page
+        return redirect(url_for('home'))
         
     items = []
     try:
@@ -198,12 +197,13 @@ def user_create():
     return redirect(url_for('users_list'))
 
 
-# === Dashboard Route ===
+# === Dashboard Route (Upgraded for Req #4) ===
 
 @app.route('/dashboard')
 def dashboard():
     """
-    STEP 4: Displays the advanced queries from Project Part 2.
+    STEP 8 (Upgrade): Displays the advanced queries, including
+    a full portfolio dashboard as per Req #4.
     """
     conn = g.get('db_conn')
     if conn is None:
@@ -211,11 +211,10 @@ def dashboard():
         return redirect(url_for('home'))
 
     query_1_results = []
-    query_2_results = []
+    portfolio_results = [] # Renamed from query_2_results
     query_3_results = []
     
-    # ... (Your three query_1, query_2, query_3 text objects are fine) ...
-    
+    # --- Query 1: Recent Transactions (This query is unchanged) ---
     query_1 = text("""
         WITH tx AS (
           SELECT user_id, item_id, platform_id, ts, price, 'BUY'  AS side FROM Purchases
@@ -232,35 +231,105 @@ def dashboard():
         LIMIT 50;
     """)
     
-    query_2 = text("""
-        WITH latest_snap AS (
-          SELECT DISTINCT ON (item_id, platform_id)
-                 item_id, platform_id, price, captured_at
-          FROM MarketSnapshots
-          ORDER BY item_id, platform_id, captured_at DESC
+    # --- Query 2 (NEW): Full Portfolio Dashboard Query (Req #4) ---
+    query_portfolio = text("""
+        WITH latest_market_price AS (
+            -- 1. Get the latest known market price for EACH item
+            SELECT DISTINCT ON (item_id)
+                   item_id,
+                   price AS market_price
+            FROM MarketSnapshots
+            ORDER BY item_id, captured_at DESC
         ),
-        mark AS (
-          SELECT item_id, MAX(price) AS mark_price
-          FROM latest_snap
-          GROUP BY item_id
+        purchase_summary AS (
+            -- 2. Calculate avg cost and total quantity BOUGHT per user per item
+            SELECT user_id, item_id,
+                   COUNT(*) AS qty_bought,
+                   SUM(price) AS total_cost_basis_item,
+                   AVG(price) AS avg_buy_cost
+            FROM Purchases
+            GROUP BY user_id, item_id
         ),
-        avg_cost AS (
-          SELECT user_id, item_id, AVG(price) AS avg_buy
-          FROM Purchases
-          GROUP BY user_id, item_id
+        sales_summary AS (
+            -- 3. Calculate avg revenue and total quantity SOLD per user per item
+            SELECT user_id, item_id,
+                   COUNT(*) AS qty_sold,
+                   SUM(price) AS total_sale_revenue_item,
+                   SUM(fee) AS total_sale_fees_item
+            FROM Sales
+            GROUP BY user_id, item_id
+        ),
+        holdings AS (
+            -- 4. Calculate current holdings for each user/item
+            SELECT
+                p.user_id,
+                p.item_id,
+                (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) AS quantity_held,
+                p.avg_buy_cost,
+                p.total_cost_basis_item
+            FROM
+                purchase_summary p
+            LEFT JOIN
+                sales_summary s ON p.user_id = s.user_id AND p.item_id = s.item_id
+            WHERE
+                (COALESCE(p.qty_bought, 0) - COALESCE(s.qty_sold, 0)) > 0
+        ),
+        portfolio_calcs AS (
+            -- 5. Calculate Realized and Unrealized PnL per user/item
+            SELECT
+                COALESCE(p.user_id, s.user_id) AS user_id,
+                COALESCE(p.item_id, s.item_id) AS item_id,
+                
+                -- Cost Basis Calcs
+                COALESCE(p.total_cost_basis_item, 0) AS total_cost_basis,
+                
+                -- Holdings Calcs (Unrealized)
+                COALESCE(h.quantity_held, 0) AS quantity_held,
+                COALESCE(lmp.market_price, 0) AS market_price,
+                (COALESCE(lmp.market_price, 0) * COALESCE(h.quantity_held, 0)) AS current_market_value,
+                (COALESCE(lmp.market_price, 0) - COALESCE(h.avg_buy_cost, 0)) * COALESCE(h.quantity_held, 0) AS unrealized_pnl,
+                
+                -- Sales Calcs (Realized)
+                COALESCE(s.qty_sold, 0) AS qty_sold,
+                COALESCE(s.total_sale_revenue_item, 0) AS total_sale_revenue,
+                COALESCE(s.total_sale_fees_item, 0) AS total_sale_fees,
+                -- Realized PnL = (Sale Revenue - Fees) - (Cost of Items Sold)
+                (COALESCE(s.total_sale_revenue_item, 0) - COALESCE(s.total_sale_fees_item, 0)) - (COALESCE(p.avg_buy_cost, 0) * COALESCE(s.qty_sold, 0)) AS realized_pnl
+                
+            FROM
+                purchase_summary p
+            FULL OUTER JOIN
+                sales_summary s ON p.user_id = s.user_id AND p.item_id = s.item_id
+            LEFT JOIN
+                holdings h ON COALESCE(p.user_id, s.user_id) = h.user_id AND COALESCE(p.item_id, s.item_id) = h.item_id
+            LEFT JOIN
+                latest_market_price lmp ON COALESCE(p.item_id, s.item_id) = lmp.item_id
         )
-        SELECT u.display_name,
-               SUM(m.mark_price)         AS est_market_value,
-               ROUND(AVG(a.avg_buy),2)   AS avg_cost_across_items,
-               COUNT(a.item_id)          AS distinct_items
-        FROM avg_cost a
-        JOIN mark m     ON m.item_id = a.item_id
-        JOIN Users u    ON u.user_id = a.user_id
-        GROUP BY u.display_name
-        HAVING COUNT(a.item_id) >= 2
-        ORDER BY est_market_value DESC;
+        -- 6. Final Aggregation per User
+        SELECT
+            u.display_name,
+            SUM(pc.total_cost_basis) AS total_investment,
+            SUM(pc.current_market_value) AS total_market_value,
+            SUM(pc.realized_pnl) AS total_realized_pnl,
+            SUM(pc.unrealized_pnl) AS total_unrealized_pnl,
+            (SUM(pc.realized_pnl) + SUM(pc.unrealized_pnl)) AS total_pnl,
+            -- ROI = (Total PnL / Total Investment) * 100
+            CASE
+                WHEN SUM(pc.total_cost_basis) > 0
+                THEN ((SUM(pc.realized_pnl) + SUM(pc.unrealized_pnl)) / SUM(pc.total_cost_basis)) * 100
+                ELSE 0
+            END AS roi_percent
+        FROM
+            portfolio_calcs pc
+        JOIN
+            Users u ON pc.user_id = u.user_id
+        GROUP BY
+            u.user_id, u.display_name
+        ORDER BY
+            total_market_value DESC;
     """)
     
+    # --- Query 3: Platform Sales (This query is unchanged) ---
     query_3 = text("""
         SELECT
           pf.platform_name,
@@ -276,7 +345,7 @@ def dashboard():
 
     try:
         query_1_results = [dict(row) for row in conn.execute(query_1).fetchall()]
-        query_2_results = [dict(row) for row in conn.execute(query_2).fetchall()]
+        portfolio_results = [dict(row) for row in conn.execute(query_portfolio).fetchall()]
         query_3_results = [dict(row) for row in conn.execute(query_3).fetchall()]
     except Exception as e:
         print(f"Error running dashboard queries: {e}")
@@ -285,7 +354,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         transactions=query_1_results,
-        portfolios=query_2_results,
+        portfolios=portfolio_results, # Pass the new portfolio data
         platforms=query_3_results
     )
 
@@ -398,7 +467,7 @@ def purchase_create():
     return redirect(url_for('item_detail', item_id=item_id_to_use))
 
 
-# === Holdings Page Route ===
+# === Holdings Page Route (Req #2) ===
 
 @app.route('/holdings')
 def holdings_redirect():
@@ -492,6 +561,7 @@ def holdings_for_user(user_id):
         flash(f"Error fetching holdings: {e}")
 
     return render_template("holdings.html", holdings=holdings, user_name=user_name, user_id=user_id)
+
 
 # --- Main Application Runner ---
 
