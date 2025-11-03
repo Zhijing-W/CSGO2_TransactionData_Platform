@@ -9,7 +9,7 @@ app.secret_key = os.urandom(24)
 
 # --- Database Configuration ---
 # Your password has been added here
-DATABASEURI = "postgresql://zw3155:477430@w4111b.cs.columbia.edu/zw3155"
+DATABASEURI = "postgresql://zw3155:477430@34.139.8.30/proj1part2"
 
 # Create the database engine
 engine = create_engine(DATABASEURI)
