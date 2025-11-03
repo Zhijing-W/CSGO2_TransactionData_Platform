@@ -4,92 +4,52 @@
     <meta charset="UTF-8">
     <title>{% block title %}CS2 Market Tracker{% endblock %}</title>
     <style>
-        /* General body styling */
+        /* ... (all your existing CSS styles) ... */
         body { font-family: sans-serif; margin: 0; padding: 0; }
         .container { width: 90%; margin: 2em auto; }
-
-        /* Navigation Bar Styling */
-        .navbar {
-            background-color: #333;
-            overflow: hidden;
-            width: 100%;
-        }
-        .navbar a {
-            float: left;
-            display: block;
-            color: white;
-            text-align: center;
-            padding: 14px 20px;
-            text-decoration: none;
-            font-size: 17px;
-        }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-        .navbar a.active {
-            background-color: #007bff;
-            color: white;
-        }
+        .navbar { background-color: #333; overflow: hidden; width: 100%; }
+        .navbar a { float: left; display: block; color: white; text-align: center; padding: 14px 20px; text-decoration: none; font-size: 17px; }
+        .navbar a:hover { background-color: #ddd; color: black; }
+        /* Style for right-aligned links */
+        .navbar a.right { float: right; }
+        .navbar a.active { background-color: #007bff; color: white; }
         
-        /* Table styling (from your previous files) */
-        table { border-collapse: collapse; width: 100%; margin-bottom: 2em; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        /* Flash message styling */
+        .flash { padding: 1em; margin: 1em 0; border-radius: 5px; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
 
-        /* Headers */
-        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
-
-        /* Links and Buttons */
-        a { color: #0066cc; }
-        .action-link {
-            display: inline-block;
-            margin: 1em 0;
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .action-link:hover { background-color: #0056b3; }
-        button {
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover { background-color: #218838; }
-        
-        /* Form styling */
-        form { max-width: 500px; padding: 1.5em; border: 1px solid #ccc; border-radius: 5px; }
-        form div { margin-bottom: 1em; }
-        form label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="email"], input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
+        /* ... (all your other styles for tables, forms, etc.) ... */
     </style>
 </head>
 <body>
 
     <div class="navbar">
-        <a href="{{ url_for('items_list') }}">Items</a>
-        <a href="{{ url_for('users_list') }}">Users</a>
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('purchase_new_form') }}">Add Purchase</a>
-        <a href="{{ url_for('holdings_redirect') }}">Holdings</a>
-    </div>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('holdings') }}">My Holdings</a>
+            <a href="{{ url_for('items_list') }}">Item Catalog</a>
+            <a href="{{ url_for('purchase_new_form') }}">Add Purchase</a>
+            
+            <a href="{{ url_for('logout') }}" class="right">Logout ({{ current_user.display_name }})</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
     </div>
 
     <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
         {% block content %}{% endblock %}
     </div>
-
-    
 
 </body>
 </html>
