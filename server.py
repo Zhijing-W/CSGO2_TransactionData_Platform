@@ -163,37 +163,45 @@ def register():
             flash("Database connection failed.", "danger")
             return render_template("register.html")
 
+        registration_success = False
         try:
-            # Check if email or display name already exists
-            query_check = text("SELECT * FROM Users WHERE email = :email OR display_name = :name")
-            existing = conn.execute(query_check, {"email": email, "name": display_name}).fetchone()
-            
-            if existing:
-                flash("Email or Display Name already in use.", "danger")
-                return redirect(url_for('register'))
-
-            # Hash the password
-            password_hash = generate_password_hash(password)
-            
-            # Get the next user_id
-            query_max_id = text("SELECT COALESCE(MAX(user_id), 0) + 1 FROM Users")
-            new_user_id = conn.execute(query_max_id).scalar()
-
-            # Insert the new user in a transaction
+            # Start the transaction *immediately*
             with conn.begin():
-                query_insert = text("""
-                    INSERT INTO Users(user_id, email, display_name, password_hash)
-                    VALUES (:id, :email, :name, :hash)
-                """)
-                conn.execute(query_insert, {
-                    "id": new_user_id,
-                    "email": email,
-                    "name": display_name,
-                    "hash": password_hash
-                })
+                # Check if email or display name already exists
+                query_check = text("SELECT * FROM Users WHERE email = :email OR display_name = :name")
+                existing = conn.execute(query_check, {"email": email, "name": display_name}).fetchone()
+                
+                if existing:
+                    flash("Email or Display Name already in use.", "danger")
+                    # Let the 'with' block exit, which will automatically ROLLBACK
+                else:
+                    # User does not exist, proceed with insert
+                    password_hash = generate_password_hash(password)
+                    
+                    query_max_id = text("SELECT COALESCE(MAX(user_id), 0) + 1 FROM Users")
+                    new_user_id = conn.execute(query_max_id).scalar()
+
+                    query_insert = text("""
+                        INSERT INTO Users(user_id, email, display_name, password_hash)
+                        VALUES (:id, :email, :name, :hash)
+                    """)
+                    conn.execute(query_insert, {
+                        "id": new_user_id,
+                        "email": email,
+                        "name": display_name,
+                        "hash": password_hash
+                    })
+                    
+                    flash("Registration successful! Please log in.", "success")
+                    registration_success = True
+                    # Let the 'with' block exit, which will automatically COMMIT
             
-            flash("Registration successful! Please log in.", "success")
-            return redirect(url_for('login'))
+            # Now that the transaction is closed (committed or rolled back),
+            # we can safely redirect.
+            if registration_success:
+                return redirect(url_for('login'))
+            else:
+                return redirect(url_for('register'))
 
         except Exception as e:
             print(f"Error during registration: {e}")
