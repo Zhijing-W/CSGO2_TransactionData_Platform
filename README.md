@@ -36,7 +36,7 @@ The application is already running in a `screen` session on the VM for grading. 
   * **DB Host:** `34.139.8.30`
   * **DB Name:** `proj1part2`
   * **DB User:** `zw3155`
-  * Connect to our part2 PostgreSQL:
+  * Connect to our part2 PostgreSQL with password: 477430:
     `psql -U zw3155 -h 34.139.8.30 -d proj1part2`
 
 ## 4\. Implemented Functionality (from Part 1 Proposal)
