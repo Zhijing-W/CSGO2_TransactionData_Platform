@@ -38,7 +38,10 @@ If the server needs to be restarted, the process is as follows:
 4.  Pull the latest code from the `main` branch: `git pull`
 5.  Run the server (using `screen` to keep it alive):
     ```bash
-    screen python3 server.py
+    screen
+    ```
+    ```bash
+    python3 server.py
     ```
 6.  Detach from the `screen` session by pressing `CTRL + A`, then `D`.
 
