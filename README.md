@@ -1,114 +1,94 @@
+# COMS W4111 Project: CS2 Portfolio Tracker
 
+  * **Author:** Zhijing Wu (Philip), Drew Hu
+  * **UNI:** `zw3155`, `yh3913`
 
-# COMS W4111 - Project Part 3 - CS2 Market Tracker
-
-  * **Name:** Zhijing Wu (Philip), Drew Hu
-  * **UNI:** zw3155, yh3913
-
-## 1\. Application and Database Information
-
-### PostgreSQL Account
-
-The PostgreSQL account to be used for grading is: **zw3155**
+## 1\. Live Application & Database Info
 
 ### Live Application URL
 
-The application has been successfully deployed and is running 24/7 on our Google Cloud VM. It can be accessed at the following URL:
+This application has been deployed on our Google Cloud VM and is running 24/7 in a `screen` session for grading.
 
-**[http://35.196.236.91:8111](https://www.google.com/search?q=http://35.196.236.91:8111)**
+**URL: [http://35.196.236.91:8111](https://www.google.com/search?q=http://35.196.236.91:8111)**
 
-external IP will change!!!
+### PostgreSQL Account (for Grading)
 
-## 2\. How to Run The Application (For Reference)
+The PostgreSQL account used for this project is:
 
-The application is already running in a `screen` session on the VM for grading. If the server needs to be restarted, the steps are:
+  * **UNI:** `zw3155`
+  * **Host:** `34.139.8.30`
+  * **Database:** `proj1part2`
 
-1.  SSH into the VM: `ssh zw3155@cs4111-instance` (or via Google Cloud Console)
+## 2\. Demo Account (Recommended)
+
+To demonstrate the application's full capabilities (including the Portfolio Dashboard), you can log in with the following pre-populated demo account:
+
+  * **Email:** `zw3155@columbia.edu`
+  * **Password:** `123456789`
+
+This account has been pre-populated with sample `Purchase` and `Sale` data to make the `Dashboard` and `Holdings` pages functional for demonstration.
+
+## 3\. How to Run (VM Deployment)
+
+If the server needs to be restarted, the process is as follows:
+
+1.  SSH into the Google Cloud VM.
 2.  Navigate to the project directory: `cd CSGO2_TransactionData_Platform`
 3.  Activate the Python virtual environment: `source ./.virtualenvs/dbproj/bin/activate`
-4.  Run the Flask server: `python3 server.py`
-5.  The application will be available at `http://<VM_IP>:8111`.
+4.  Pull the latest code from the `main` branch: `git pull`
+5.  Run the server (using `screen` to keep it alive):
+    ```bash
+    screen python3 server.py
+    ```
+6.  Detach from the `screen` session by pressing `CTRL + A`, then `D`.
 
-## 3\. Database Connection
+## 4\. Implemented Features
 
-  * This application connects to the PostgreSQL database we created and populated in Part 2.
-  * The `DATABASEURI` variable within `server.py` contains the credentials to connect.
-  * **DB Host:** `34.139.8.30`
-  * **DB Name:** `proj1part2`
-  * **DB User:** `zw3155`
-  * Connect to our part2 PostgreSQL with password: 477430:
-    `psql -U zw3155 -h 34.139.8.30 -d proj1part2`
+This application successfully implements all core features specified in our Part 1 Proposal, built as a secure, multi-user platform where each user's data is private.
 
-## 4\. Implemented Functionality (from Part 1 Proposal)
+  * **Full User Authentication:** Users can `/register` a new account (with password hashing via `werkzeug`) and `/login` (managed by `flask-login` sessions).
+  * **User-Private Data:** All financial pages (`/dashboard`, `/holdings`) are protected by `@login_required` and all SQL queries are strictly filtered by `current_user.id`, ensuring users can only see their own data.
+  * **Add Purchase (Get-or-Create):** The `/purchases/new` form allows a logged-in user to add a new purchase. This triggers a "Get-or-Create" transaction in the backend.
+  * **Item Price History:** The `/items` catalog page allows users to click any item to see its detailed `/item/<id>` page, which shows global price history from the `Purchases`, `Sales`, and `MarketSnapshots` tables.
+  * **Personal Holdings Page (Req \#2):** The `/holdings` page shows a detailed, item-by-item breakdown of the user's current holdings, calculating `Average Buy Cost`, `Current Market Price`, and `Unrealized PnL` for each.
+  * **Portfolio Dashboard (Req \#4):** The `/dashboard` page serves as the user's homepage, showing an aggregated summary of their entire portfolio, including `Total Investment`, `Total Market Value`, `Realized PnL`, `Unrealized PnL`, and `ROI %`.
 
-We successfully implemented all core features from the Part 1 proposal, expanding on the original vision to create a secure, multi-user platform where each user's data is private.
+## 5\. Two Most Interesting Database Operations
 
-  * **Full User Authentication:**
+As required by the Part 3 `README` guidelines, these are the two web pages that we believe involve the most interesting database operations:
 
-      * Users can register for a new account via the `/register` route. Passwords are securely processed using `werkzeug.security`'s `generate_password_hash` and stored in the `Users` table (which we modified with an `ALTER TABLE` command).
-      * Existing users can log in via the `/login` route, which verifies their credentials using `check_password_hash`.
-      * The application uses `flask-login` to manage user sessions, remembering who is logged in.
+### 1\. Add New Purchase (Route: `POST /purchases/create`)
 
-  * **User-Private Data (Core Feature):**
-
-      * Once logged in, a user can **only** view and manage their own financial data.
-      * All core application pages (e.g., `/dashboard`, `/holdings`, `/purchases/new`) are protected with `@login_required`.
-      * All SQL queries for these pages are strictly filtered using `WHERE user_id = :uid`, with the `:uid` parameter being securely pulled from `current_user.id`.
-
-  * **Add Purchase Record (with "Get-or-Create" Logic):**
-
-      * The `/purchases/new` form allows a logged-in user to add a new purchase to their personal account.
-      * The `server.py` backend implements a robust "Get-or-Create" transaction logic:
-        1.  It first checks the `Items` table based on the `market_name` and `exterior` (e.g., "AWP | Asiimov" + "Field-Tested").
-        2.  **If the item exists**, its `item_id` is retrieved and used.
-        3.  **If the item does not exist**, the code safely generates a new `item_id` (using `SELECT COALESCE(MAX(item_id), 0) + 1 FROM Items`), inserts this new item into the `Items` catalog, and **then** inserts the purchase record, all within a single database **transaction (`with conn.begin():`)**.
-
-  * **Item Price History (Req \#3):**
-
-      * Users can browse the global `/items` catalog and click any item to see its detailed history page (e.g., `/item/101`).
-      * This page joins data from `Purchases`, `Sales`, and `MarketSnapshots` to show all historical transactions and price points for that item, allowing for price analysis.
-
-  * **Personal Holdings Page (Req \#2):**
-
-      * The `/holdings` page displays **only** the items currently held by the logged-in user (i.e., `qty_bought > qty_sold`).
-      * For **each** item, a complex SQL query calculates and displays the user's `Average Buy Cost`, the `Current Market Price` (from the latest snapshot), and the `Unrealized PnL` for that position.
-
-  * **Portfolio Dashboard (Req \#4):**
-
-      * The `/dashboard` route serves as the user's homepage, displaying an **aggregated** financial summary of their entire portfolio.
-      * A single, complex SQL query with multiple Common Table Expressions (CTEs) calculates their `Total Investment`, `Total Current Market Value`, `Total Realized PnL`, `Total Unrealized PnL`, `Total PnL`, and `ROI %`.
-
------
-
-### Unimplemented Features (Explanation)
-
-  * **"Refresh Button":** The "refresh button" to trigger a new price fetch (mentioned in the Part 1 proposal) was not implemented. This feature would require an external API or web scraper, which falls outside the project's core focus on SQL, database transactions, and web application logic.
-
------
-
-## 5\. Most Interesting Database Operations (for Grading)
-
-As required by the Part 3 submission guidelines, here are the two web pages we believe involve the most interesting database operations:
-
-### Page 1: Add New Purchase (Route: `/purchases/create`)
-
-  * **What it is used for:** This is the backend logic for the "Add Purchase" form. It allows a user to log a new purchase, and it ensures that the item they bought either exists in or is added to the master `Items` catalog.
-  * **Relation to Database Operations:** This operation is interesting because it performs a "Get-or-Create" logic inside a single, safe **transaction**.
+  * **Purpose:** This is the backend logic for the "Add Purchase" form. It allows a user to log a new purchase and ensures that the item exists in the master `Items` catalog.
+  * **Database Operation:** This function is interesting because it performs a "Get-or-Create" logic inside a single, safe **transaction** (`with engine.begin():`).
     1.  A `SELECT` query first checks if an item with a matching `market_name` and `exterior` already exists.
-    2.  **If it does not exist**, a second query (`SELECT COALESCE(MAX(item_id), 0) + 1...`) safely finds the next available `item_id` (even if the table is empty).
-    3.  A third query (`INSERT INTO Items...`) creates the new item.
+    2.  **If it does not exist**, a second query (`SELECT COALESCE(MAX(item_id), 0) + 1...`) safely finds the next available `item_id`.
+    3.  A third query (`INSERT INTO Items...`) creates the new item in the catalog.
     4.  A fourth query (`SELECT COALESCE(MAX(purchase_id), 0) + 1...`) finds the next `purchase_id`.
     5.  A final `INSERT INTO Purchases...` query logs the transaction, linking the `user_id` and the (newly found or created) `item_id`.
-  * **Why it is interesting:** This demonstrates a complex, multi-step process that must be **atomic**. By wrapping all 5 queries in a `with conn.begin():` block, we ensure that if any step fails (e.g., the `INSERT INTO Purchases` fails), the entire operation is **rolled back**, preventing "orphan" items from being created in the `Items` table without a corresponding purchase.
+  * **Why it's interesting:** This demonstrates a complex, multi-step write process that must be **atomic**. By wrapping all 5 queries in a single transaction, we ensure that if any step fails (e.g., the `INSERT INTO Purchases` fails), the entire operation is **rolled back**, preventing "orphan" items from being created.
 
-### Page 2: Portfolio Dashboard (Route: `/dashboard`)
+### 2\. Portfolio Dashboard (Route: `GET /dashboard`)
 
-  * **What it is used for:** This page provides the logged-in user with a high-level summary of their entire investment portfolio, including their overall profit/loss and return on investment.
-  * **Relation to Database Operations:** This page is generated by a single, complex SQL query that is over 70 lines long. This query uses **six** Common Table Expressions (CTEs) to build up the final report:
-    1.  `latest_market_price`: Uses `DISTINCT ON` to find the single most recent price for every item in the `MarketSnapshots` table.
+  * **Purpose:** This page provides the logged-in user with a high-level summary of their entire investment portfolio, including their overall profit/loss and return on investment (ROI).
+  * **Database Operation:** This page is generated by a single, complex SQL query that is over 70 lines long. This query uses **six** Common Table Expressions (CTEs) to build the final report, all filtered by `current_user.id`:
+    1.  `latest_market_price`: Uses `DISTINCT ON` to find the single most recent price for every item.
     2.  `purchase_summary`: Aggregates all of a user's purchases by item to find `qty_bought`, `total_cost_basis_item`, and `avg_buy_cost`.
-    3.  `sales_summary`: Aggregates all sales to find `qty_sold`, `total_sale_revenue_item`, and `total_sale_fees_item`.
-    4.  `holdings`: Joins `purchase_summary` and `sales_summary` to calculate the `quantity_held` for each item.
+    3.  `sales_summary`: Aggregates all sales to find `qty_sold` and `total_sale_revenue_item`.
+    4.  `holdings`: Joins the purchase and sale summaries to calculate the current `quantity_held` for each item.
     5.  `portfolio_calcs`: Uses a `FULL OUTER JOIN` to combine all previous CTEs, calculating `realized_pnl` (from sales) and `unrealized_pnl` (from current holdings) for every item the user has ever touched.
-    6.  **Final `SELECT`:** The main query then aggregates all calculations from `portfolio_calcs` into a single row for the user, calculating final `total_pnl` and `roi_percent`.
-  * **Why it is interesting:** This single query demonstrates mastery of advanced SQL concepts, including `WITH` clauses for modularity, `DISTINCT ON` for price-finding, `FULL OUTER JOIN` to correctly combine users' purchase and sale histories, and `CASE` statements to prevent division-by-zero errors when calculating `ROI`. It is the most complex operation in the application.
+    6.  **Final `SELECT`:** The main query then aggregates all calculations from `portfolio_calcs` into a single row for the user, calculating final `total_pnl` and `roi_percent` (using a `CASE` statement to prevent division-by-zero errors).
+  * **Why it's interesting:** This single query demonstrates mastery of advanced SQL concepts to build a complex financial report. It uses `WITH` clauses for modularity, `DISTINCT ON` for price-finding, `FULL OUTER JOIN` to correctly combine purchase/sale histories, and `CASE` statements for safe division.
+
+## 6\. Future Work
+While this project successfully fulfills the Part 1 proposal, we have identified several areas for future enhancement:
+
+3. Implement "Add Sale" Form: Add a form for users to log Sale transactions, which would complete the portfolio loop and allow Realized PnL to be calculated based on user sales (rather than just purchases).
+
+4. Multi-Currency Support: Integrate a real-time FX (Foreign Exchange) rate API. This would allow users to record purchases in different currencies (EUR, CNY, etc.) and see their portfolio value displayed in a single, user-selected currency (e.g., USD).
+
+5. Homepage Dashboard: Integrate external market APIs (e.g., Steam, CSFloat) to display a public-facing dashboard of the current top-selling items.
+
+6. Real-Time Valuation: Fetch live prices for all items in a user's portfolio to calculate an immediate "total liquidation value" (profit if all items were sold instantly).
+
+7. UI/UX Enhancement: Implement data visualization (e.g., using Chart.js) to display PnL trends and holding distributions as interactive charts, helping users better understand their portfolio.

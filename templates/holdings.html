@@ -27,22 +27,23 @@
                 </td>
                 <td>{{ item.exterior }}</td>
                 <td>{{ item.quantity_held }}</td>
-                <td>{{ "%.2f"|format(item.avg_buy_cost) }}</td>
-                <td>{{ "%.2f"|format(item.market_price) }}</td>
+                <td>{{ "%.2f"|format(item.avg_buy_cost or 0) }}</td>
+                <td>{{ "%.2f"|format(item.market_price or 0) }}</td>
                 
-                {% if item.unrealized_pnl > 0 %}
+                {% set pnl = item.unrealized_pnl or 0 %}
+                {% if pnl > 0 %}
                     <td style="color: green;">
-                        +{{ "%.2f"|format(item.unrealized_pnl) }}
+                        +{{ "%.2f"|format(pnl) }}
                     </td>
                 {% else %}
                     <td style="color: red;">
-                        {{ "%.2f"|format(item.unrealized_pnl) }}
+                        {{ "%.2f"|format(pnl) }}
                     </td>
                 {% endif %}
             </tr>
             {% else %}
             <tr>
-                <td colspan="6">You are not currently holding any items.</td>
+                <td colspan="6">You are not currently holding any items. Add a purchase to get started.</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -143,15 +143,14 @@ def register():
         email = request.form.get('email')
         display_name = request.form.get('display_name')
         password = request.form.get('password')
-        conn = g.get('db_conn')
-        if conn is None:
-            flash("Database connection failed.", "danger")
-            return render_template("register.html")
-
+        
+        # --- FIX: Do NOT use g.get('db_conn') for transactions ---
+        # We will get a fresh connection from the engine
+        
         registration_success = False
         try:
-            with conn.begin():
-                # FIX: Explicitly select one column
+            # --- FIX: Get a fresh connection and begin transaction ---
+            with engine.begin() as conn:
                 query_check = text("SELECT 1 FROM Users WHERE email = :email OR display_name = :name")
                 existing_row = conn.execute(query_check, {"email": email, "name": display_name}).fetchone()
                 
@@ -451,21 +450,18 @@ def purchase_create():
     price = request.form.get('price')
     currency = request.form.get('currency')
     ts = request.form.get('ts')
-    conn = g.get('db_conn')
-    if conn is None:
-        flash("Database connection failed.", "danger")
-        return redirect(url_for('home'))
-
+    
+    # --- FIX: Do NOT use g.get('db_conn') for transactions ---
+    
     item_id_to_use = None
     try:
-        with conn.begin():
-            # FIX: Explicit column
+        # --- FIX: Get a fresh connection and begin transaction ---
+        with engine.begin() as conn:
             query_item = text("SELECT item_id FROM Items WHERE market_name = :name AND exterior = :ext")
             result_row = conn.execute(query_item, {"name": market_name, "ext": exterior}).fetchone()
             
             if result_row:
-                # FIX: Access by index [0]
-                item_id_to_use = result_row[0]
+                item_id_to_use = result_row[0] # Access by index [0]
                 print(f"Item found. Using existing item_id: {item_id_to_use}")
             else:
                 print(f"Item not found. Creating new item: {market_name} ({exterior})")
@@ -498,14 +494,20 @@ def purchase_create():
                 "curr": currency
             })
             print(f"Successfully inserted purchase record {new_purchase_id}")
+            
         flash("Purchase record created successfully!")
+        
     except Exception as e:
         print(f"Error during 'Get-or-Create' transaction: {e}")
         flash(f"Transaction failed. Error: {e}", "danger")
         return redirect(url_for('purchase_new_form'))
     
-    return redirect(url_for('item_detail', item_id=item_id_to_use))
-
+    # We must redirect to a URL *outside* the 'try' block
+    if item_id_to_use:
+        return redirect(url_for('item_detail', item_id=item_id_to_use))
+    else:
+        # Fallback if something went wrong
+        return redirect(url_for('dashboard'))
 
 @app.route('/holdings')
 @login_required

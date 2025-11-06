@@ -19,31 +19,35 @@
         <tbody>
             {% for row in portfolios %}
             <tr>
-                <td>{{ "%.2f"|format(row.total_investment) }}</td>
-                <td>{{ "%.2f"|format(row.total_market_value) }}</td>
+                <td>{{ "%.2f"|format(row.total_investment or 0) }}</td>
+                <td>{{ "%.2f"|format(row.total_market_value or 0) }}</td>
                 
-                {% if row.total_realized_pnl > 0 %}
-                    <td style="color: green;">+{{ "%.2f"|format(row.total_realized_pnl) }}</td>
+                {% set realized_pnl = row.total_realized_pnl or 0 %}
+                {% if realized_pnl > 0 %}
+                    <td style="color: green;">+{{ "%.2f"|format(realized_pnl) }}</td>
                 {% else %}
-                    <td style="color: red;">{{ "%.2f"|format(row.total_realized_pnl) }}</td>
+                    <td style="color: red;">{{ "%.2f"|format(realized_pnl) }}</td>
                 {% endif %}
 
-                {% if row.total_unrealized_pnl > 0 %}
-                    <td style="color: green;">+{{ "%.2f"|format(row.total_unrealized_pnl) }}</td>
+                {% set unrealized_pnl = row.total_unrealized_pnl or 0 %}
+                {% if unrealized_pnl > 0 %}
+                    <td style="color: green;">+{{ "%.2f"|format(unrealized_pnl) }}</td>
                 {% else %}
-                    <td style="color: red;">{{ "%.2f"|format(row.total_unrealized_pnl) }}</td>
+                    <td style="color: red;">{{ "%.2f"|format(unrealized_pnl) }}</td>
                 {% endif %}
 
-                {% if row.total_pnl > 0 %}
-                    <td style="color: green; font-weight: bold;">+{{ "%.2f"|format(row.total_pnl) }}</td>
+                {% set total_pnl = row.total_pnl or 0 %}
+                {% if total_pnl > 0 %}
+                    <td style="color: green; font-weight: bold;">+{{ "%.2f"|format(total_pnl) }}</td>
                 {% else %}
-                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(row.total_pnl) }}</td>
+                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(total_pnl) }}</td>
                 {% endif %}
                 
-                {% if row.roi_percent > 0 %}
-                    <td style="color: green; font-weight: bold;">{{ "%.2f"|format(row.roi_percent) }}%</td>
+                {% set roi = row.roi_percent or 0 %}
+                {% if roi > 0 %}
+                    <td style="color: green; font-weight: bold;">{{ "%.2f"|format(roi) }}%</td>
                 {% else %}
-                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(row.roi_percent) }}%</td>
+                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(roi) }}%</td>
                 {% endif %}
             </tr>
             {% else %}
