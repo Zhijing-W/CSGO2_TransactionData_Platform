@@ -83,12 +83,14 @@ As required by the Part 3 `README` guidelines, these are the two web pages that 
 ## 6\. Future Work
 While this project successfully fulfills the Part 1 proposal, we have identified several areas for future enhancement:
 
-3. Implement "Add Sale" Form: Add a form for users to log Sale transactions, which would complete the portfolio loop and allow Realized PnL to be calculated based on user sales (rather than just purchases).
+1. Implement "Add Sale" Form: Add a form for users to log Sale transactions, which would complete the portfolio loop and allow Realized PnL to be calculated based on user sales.
 
-4. Multi-Currency Support: Integrate a real-time FX (Foreign Exchange) rate API. This would allow users to record purchases in different currencies (EUR, CNY, etc.) and see their portfolio value displayed in a single, user-selected currency (e.g., USD).
+2. Optimize Primary Keys: Refactor the database schema to use SERIAL (auto-incrementing) primary keys instead of the current SELECT MAX(id) + 1 logic. This would dramatically improve INSERT performance and ensure transactional safety at scale.
 
-5. Homepage Dashboard: Integrate external market APIs (e.g., Steam, CSFloat) to display a public-facing dashboard of the current top-selling items.
+3. Multi-Currency Support: Integrate a real-time FX (Foreign Exchange) rate API to allow users to record purchases in different currencies (EUR, CNY, etc.) and see their portfolio value displayed in a single, user-selected currency (e.g., USD).
 
-6. Real-Time Valuation: Fetch live prices for all items in a user's portfolio to calculate an immediate "total liquidation value" (profit if all items were sold instantly).
+4. Homepage Dashboard: Integrate external market APIs (e.g., Steam, CSFloat) to display a public-facing dashboard of the current top-selling items.
 
-7. UI/UX Enhancement: Implement data visualization (e.g., using Chart.js) to display PnL trends and holding distributions as interactive charts, helping users better understand their portfolio.
+5. Real-Time Valuation: Fetch live prices for all items in a user's portfolio to calculate an immediate "total liquidation value."
+
+6. UI/UX Enhancement: Implement data visualization (e.g., using Chart.js) to display PnL trends and holding distributions as interactive charts.
