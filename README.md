@@ -9,7 +9,7 @@
 
 This application has been deployed on our Google Cloud VM and is running 24/7 in a `screen` session for grading.
 
-**URL: [http://34.138.218.13:8111](https://www.google.com/search?q=http://34.138.218.13:8111)**
+**URL: [http://34.138.218.13:8111]**
 
 ### PostgreSQL Account (for Grading)
 
@@ -33,8 +33,8 @@ This account has been pre-populated with sample `Purchase` and `Sale` data to ma
 If the server needs to be restarted, the process is as follows:
 
 1.  SSH into the Google Cloud VM.
-2.  Navigate to the project directory: `cd CSGO2_TransactionData_Platform`
-3.  Activate the Python virtual environment: `source ./.virtualenvs/dbproj/bin/activate`
+2.  Activate the Python virtual environment: `source ./.virtualenvs/dbproj/bin/activate`
+3.  Navigate to the project directory: `cd CSGO2_TransactionData_Platform`
 4.  Pull the latest code from the `main` branch: `git pull`
 5.  Run the server (using `screen` to keep it alive):
     ```bash
