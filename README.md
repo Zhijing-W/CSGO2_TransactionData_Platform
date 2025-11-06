@@ -9,7 +9,7 @@
 
 This application has been deployed on our Google Cloud VM and is running 24/7 in a `screen` session for grading.
 
-**URL: [http://35.196.236.91:8111](https://www.google.com/search?q=http://35.196.236.91:8111)**
+**URL: [http://34.138.218.13:8111](https://www.google.com/search?q=http://34.138.218.13:8111)**
 
 ### PostgreSQL Account (for Grading)
 
