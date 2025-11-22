@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Purchase Record{% endblock %}
+
+{% block content %}
+    <h1>Edit Purchase Record</h1>
+
+    <form action="{{ url_for('purchase_update', purchase_id=purchase.purchase_id) }}" method="POST">
+        
+        <fieldset>
+            <legend>Item Details</legend>
+            <p><strong>Item:</strong> {{ item.market_name }} ({{ item.exterior }})</p>
+            <p style="font-size: 0.9em; color: gray;">Note: You cannot change the item being edited. To change the item, please delete this record and create a new one.</p>
+        </fieldset>
+
+        <fieldset>
+            <legend>Transaction Details</legend>
+            <div>
+                <label for="platform_id">Platform:</label>
+                <select id="platform_id" name="platform_id" required>
+                    <option value="">-- Select Platform --</option>
+                    {% for platform in platforms %}
+                        <option value="{{ platform.platform_id }}" {% if platform.platform_id == purchase.platform_id %}selected{% endif %}>
+                            {{ platform.platform_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="price">Price:</label>
+                <input type="number" step="0.01" id="price" name="price" value="{{ purchase.price }}" required>
+            </div>
+            <div>
+                <label for="currency">Currency:</label>
+                <select id="currency" name="currency" required>
+                    <option value="USD" {% if purchase.currency == 'USD' %}selected{% endif %}>USD</option>
+                    <option value="EUR" {% if purchase.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                    <option value="CNY" {% if purchase.currency == 'CNY' %}selected{% endif %}>CNY</option>
+                    <option value="GBP" {% if purchase.currency == 'GBP' %}selected{% endif %}>GBP</option>
+                </select>
+            </div>
+            <div>
+                <label for="ts">Date of Purchase:</label>
+                {# The 'datetime-local' input needs the value in 'YYYY-MM-DDTHH:MM' format #}
+                <input type="datetime-local" id="ts" name="ts" value="{{ purchase.ts.strftime('%Y-%m-%dT%H:%M') }}" required>
+            </div>
+        </fieldset>
+        
+        <div>
+            <button type="submit">Update Purchase</button>
+            <a href="{{ url_for('item_detail', item_id=purchase.item_id) }}" style="margin-left: 1em;">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

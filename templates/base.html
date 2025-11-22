@@ -2,42 +2,571 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CS2 Market Tracker{% endblock %}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ... (all your existing CSS styles) ... */
-        body { font-family: sans-serif; margin: 0; padding: 0; }
-        .container { width: 90%; margin: 2em auto; }
-        .navbar { background-color: #333; overflow: hidden; width: 100%; }
-        .navbar a { float: left; display: block; color: white; text-align: center; padding: 14px 20px; text-decoration: none; font-size: 17px; }
-        .navbar a:hover { background-color: #ddd; color: black; }
-        /* Style for right-aligned links */
-        .navbar a.right { float: right; }
-        .navbar a.active { background-color: #007bff; color: white; }
-        
-        /* Flash message styling */
-        .flash { padding: 1em; margin: 1em 0; border-radius: 5px; }
-        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash.danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #1a1a1a;
+            --accent-green: #4a9b3a;
+            --accent-green-bright: #5fb85f;
+            --accent-green-dark: #2d5a1f;
+            --accent-gray: #666666;
+            --text-primary: #e0e0e0;
+            --text-secondary: #5fb85f;
+            --text-muted: #888888;
+            --text-dim: #555555;
+            --border-color: rgba(74, 155, 58, 0.3);
+            --glow-green: 0 0 10px rgba(74, 155, 58, 0.5);
+            --hacker-green: #00ff41;
+            --neon-pink: #ff006e;
+            --neon-yellow: #ffbe0b;
+            --neon-orange: #fb5607;
+            --neon-purple: #8338ec;
+        }
 
-        /* ... (all your other styles for tables, forms, etc.) ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid with CSGO style */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 255, 65, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(131, 56, 236, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* Neon gradient text effect - CSGO style */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-yellow) 25%, var(--neon-orange) 50%, var(--neon-pink) 75%, var(--neon-purple) 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .gradient-text-green {
+            color: var(--hacker-green);
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.8);
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .gradient-text-pink {
+            color: var(--neon-pink);
+            text-shadow: 0 0 15px rgba(255, 0, 110, 0.6);
+        }
+
+        /* Navbar - CSGO Style */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--hacker-green);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8),
+                        0 0 20px rgba(0, 255, 65, 0.2);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .navbar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--hacker-green), 
+                var(--neon-purple),
+                var(--hacker-green),
+                transparent);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .navbar a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 1.2rem 1.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .navbar a::before {
+            content: '>';
+            position: absolute;
+            left: 0.5rem;
+            opacity: 0;
+            color: var(--hacker-green);
+            transition: all 0.3s ease;
+        }
+
+        .navbar a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--hacker-green);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+        }
+
+        .navbar a:hover {
+            color: var(--hacker-green);
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+            padding-left: 2rem;
+        }
+
+        .navbar a:hover::before {
+            opacity: 1;
+        }
+
+        .navbar a:hover::after {
+            width: 80%;
+        }
+
+        .navbar a.right {
+            margin-left: auto;
+            color: var(--hacker-green);
+            font-weight: 700;
+        }
+
+        .navbar a.right:hover {
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px rgba(255, 0, 110, 0.8);
+        }
+
+        /* Container - CSGO Style */
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* CSGO Style Card Container */
+        .csgo-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--hacker-green);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 0 40px rgba(0, 255, 65, 0.2),
+                        inset 0 0 20px rgba(0, 255, 65, 0.05);
+            position: relative;
+            overflow: hidden;
+            margin: 1.5rem 0;
+        }
+
+        .csgo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+            animation: scan 3s infinite;
+        }
+
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* CSGO Section Title */
+        .csgo-section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            color: var(--hacker-green);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin: 2rem 0 1.5rem 0;
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .csgo-section-title::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--hacker-green);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Flash messages */
+        .flash {
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            border: 1px solid;
+            backdrop-filter: blur(10px);
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .flash.success {
+            background: rgba(74, 155, 58, 0.1);
+            border-color: var(--accent-green);
+            color: var(--accent-green-bright);
+            box-shadow: var(--glow-green);
+        }
+
+        .flash.danger {
+            background: rgba(102, 102, 102, 0.1);
+            border-color: var(--accent-gray);
+            color: var(--accent-gray);
+            box-shadow: 0 0 10px rgba(102, 102, 102, 0.3);
+        }
+
+        .flash.info {
+            background: rgba(74, 155, 58, 0.1);
+            border-color: var(--accent-green);
+            color: var(--accent-green-bright);
+            box-shadow: var(--glow-green);
+        }
+
+        /* Glass morphism card */
+        .glass-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: var(--accent-green);
+            box-shadow: var(--glow-green), 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Headings */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--hacker-green);
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.8), 0 0 40px rgba(0, 255, 65, 0.4);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* Tables - CSGO Style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--hacker-green);
+            margin: 1.5rem 0;
+            box-shadow: 0 0 40px rgba(0, 255, 65, 0.2);
+        }
+
+        thead {
+            background: var(--bg-tertiary);
+            border-bottom: 2px solid var(--hacker-green);
+        }
+
+        th {
+            padding: 1.2rem;
+            text-align: left;
+            font-weight: 900;
+            color: var(--hacker-green);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            border-bottom: 2px solid var(--hacker-green);
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        td {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        tr:hover {
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        /* Forms - CSGO Style */
+        input, select, textarea {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--hacker-green);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4),
+                        inset 0 0 10px rgba(0, 255, 65, 0.1);
+            background: var(--bg-secondary);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Buttons - CSGO Style */
+        button, .btn {
+            background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+            border: 2px solid var(--hacker-green);
+            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            color: var(--hacker-green);
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 0 30px rgba(131, 56, 236, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before, .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 255, 65, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover, .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px rgba(131, 56, 236, 0.6),
+                        0 0 30px rgba(0, 255, 65, 0.4);
+            border-color: var(--neon-pink);
+        }
+
+        button:hover::before, .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:active, .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Links */
+        a {
+            color: var(--accent-green-bright);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--accent-green);
+            text-shadow: var(--glow-green);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-green-dark);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-green);
+        }
+
+        /* Monospace for numbers */
+        .mono {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        /* Glow effects */
+        .glow-cyan {
+            text-shadow: var(--glow-green);
+            color: var(--accent-green-bright);
+        }
+
+        .glow-green {
+            text-shadow: var(--glow-green);
+            color: var(--accent-green-bright);
+        }
+
+        .glow-pink {
+            text-shadow: 0 0 10px rgba(102, 102, 102, 0.5);
+            color: var(--accent-gray);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-wrap: wrap;
+                padding: 0 1rem;
+            }
+            
+            .navbar a {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .container {
+                width: 100%;
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-
-    <div class="navbar">
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('holdings') }}">My Holdings</a>
-            <a href="{{ url_for('items_list') }}">Item Catalog</a>
-            <a href="{{ url_for('purchase_new_form') }}">Add Purchase</a>
-            
-            <a href="{{ url_for('logout') }}" class="right">Logout ({{ current_user.display_name }})</a>
-        {% else %}
-            <a href="{{ url_for('login') }}">Login</a>
-            <a href="{{ url_for('register') }}">Register</a>
-        {% endif %}
-    </div>
+    <nav class="navbar">
+        <div>
+            <a href="{{ url_for('home') }}">🏠 Home</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}">📊 Dashboard</a>
+                <a href="{{ url_for('holdings') }}">💼 Holdings</a>
+                <a href="{{ url_for('transaction_new_form') }}">➕ Transaction</a>
+            {% endif %}
+        </div>
+        <div>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('logout') }}" class="right">🚪 {{ current_user.display_name }}</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="right">🔐 Login</a>
+                <a href="{{ url_for('register') }}" class="right">✨ Register</a>
+            {% endif %}
+        </div>
+    </nav>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -51,5 +580,6 @@
         {% block content %}{% endblock %}
     </div>
 
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

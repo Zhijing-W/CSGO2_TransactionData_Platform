@@ -1,58 +1,680 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - {{ current_user.display_name }}{% endblock %}
+{% block title %}Trading Dashboard - {{ current_user.display_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSGO Hacker Style Dashboard - Matching Login */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 2.5rem;
+        margin: 0;
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-yellow) 25%, var(--neon-orange) 50%, var(--neon-pink) 75%, var(--neon-purple) 100%);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 3s ease infinite;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        font-weight: 900;
+    }
+
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .stat-card {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.2),
+                    inset 0 0 20px rgba(0, 255, 65, 0.05);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+        animation: scan 3s infinite;
+    }
+
+    @keyframes scan {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+
+    .stat-card:hover {
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 50px rgba(255, 0, 110, 0.4),
+                    0 0 30px rgba(0, 255, 65, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .stat-card h3 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-card .value {
+        font-size: 2rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .stat-card.positive .value {
+        color: var(--hacker-green);
+        text-shadow: 0 0 25px rgba(0, 255, 65, 1),
+                     0 0 50px rgba(0, 255, 65, 0.6);
+    }
+
+    .stat-card.negative .value {
+        color: var(--neon-pink);
+        text-shadow: 0 0 25px rgba(255, 0, 110, 1),
+                     0 0 50px rgba(255, 0, 110, 0.6);
+    }
+
+    .stat-card.neutral .value {
+        color: var(--neon-yellow);
+        text-shadow: 0 0 25px rgba(255, 190, 11, 1),
+                     0 0 50px rgba(255, 190, 11, 0.6);
+    }
+
+    .stat-card.cyan .value {
+        color: var(--neon-purple);
+        text-shadow: 0 0 25px rgba(131, 56, 236, 1),
+                     0 0 50px rgba(131, 56, 236, 0.6);
+    }
+
+    .stat-card.cyan {
+        border-color: var(--neon-purple);
+    }
+
+    .stat-card.cyan:hover {
+        border-color: var(--neon-purple);
+        box-shadow: 0 0 50px rgba(131, 56, 236, 0.5),
+                    0 0 30px rgba(0, 255, 65, 0.3);
+    }
+
+    .stat-card.positive {
+        border-color: var(--hacker-green);
+    }
+
+    .stat-card.positive:hover {
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 50px rgba(0, 255, 65, 0.5);
+    }
+
+    .stat-card.negative {
+        border-color: var(--neon-pink);
+    }
+
+    .stat-card.negative:hover {
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 50px rgba(255, 0, 110, 0.5);
+    }
+
+    .currency-selector {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .currency-selector label {
+        color: var(--hacker-green);
+        margin-right: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+    }
+
+    .currency-selector select {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        color: var(--hacker-green);
+        font-weight: 700;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-family: 'JetBrains Mono', monospace;
+        transition: all 0.3s ease;
+    }
+
+    .currency-selector select:hover {
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+    }
+
+    .currency-selector select:focus {
+        outline: none;
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+    }
+
+    .chart-container {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.2),
+                    inset 0 0 20px rgba(0, 255, 65, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+        animation: scan 3s infinite;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        margin: 2rem 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--hacker-green);
+        font-weight: 900;
+        font-family: 'JetBrains Mono', monospace;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+        position: relative;
+        padding-left: 1.5rem;
+    }
+
+    .section-title::before {
+        content: '>';
+        position: absolute;
+        left: 0;
+        color: var(--hacker-green);
+        animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+
+    .section-title.purchase {
+        color: var(--neon-pink);
+        text-shadow: 0 0 20px rgba(255, 0, 110, 0.6);
+    }
+
+    .section-title.sale {
+        color: var(--hacker-green);
+        text-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+    }
+
+    /* Financial Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .metric-item {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .metric-item:hover {
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .metric-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 0.75rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 900;
+        color: var(--hacker-green);
+        text-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+    }
+
+    /* Performance Indicators */
+    .performance-indicator {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 1px;
+    }
+
+    .performance-indicator.up {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+        color: var(--hacker-green);
+        border: 2px solid var(--hacker-green);
+        box-shadow: 0 0 15px rgba(131, 56, 236, 0.3);
+    }
+
+    .performance-indicator.down {
+        background: var(--bg-tertiary);
+        color: var(--text-muted);
+        border: 2px solid var(--text-muted);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-    <h1>Portfolio Dashboard for {{ current_user.display_name }}</h1>
+{% set currency_symbol = "$" %}
+{% if current_currency == "EUR" %}
+    {% set currency_symbol = "€" %}
+{% elif current_currency == "CNY" %}
+    {% set currency_symbol = "¥" %}
+{% elif current_currency == "JPY" %}
+    {% set currency_symbol = "¥" %}
+{% endif %}
+
+<div class="page-header">
+    <h1 class="page-title">📊 DASHBOARD</h1>
     
+    <div class="currency-selector">
+        <form action="{{ url_for('dashboard') }}" method="get" style="margin: 0; display: flex; align-items: center;">
+            <label for="currency">Currency:</label>
+            <select name="currency" id="currency" onchange="this.form.submit()">
+                <option value="USD" {% if current_currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                <option value="EUR" {% if current_currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                <option value="CNY" {% if current_currency == 'CNY' %}selected{% endif %}>CNY (¥)</option>
+                <option value="JPY" {% if current_currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if current_currency != 'USD' %}
+    <p style="color: var(--text-muted); font-size: 0.85em; text-align: right; margin-top: 0; font-family: 'JetBrains Mono', monospace;">
+        Exchange Rate: 1 USD ≈ {{ "%.4f"|format(exchange_rate) }} {{ current_currency }}
+    </p>
+{% endif %}
+
+<!-- Key Financial Metrics -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+    <div class="stat-card cyan">
+        <h3>💰 Total Invested</h3>
+        <p class="value mono">{{ currency_symbol }}{{ "%.2f"|format(financial_stats.total_invested) }}</p>
+    </div>
+    
+    <div class="stat-card positive">
+        <h3>💵 Total Revenue</h3>
+        <p class="value mono">{{ currency_symbol }}{{ "%.2f"|format(financial_stats.total_revenue) }}</p>
+    </div>
+    
+    <div class="stat-card {% if financial_stats.realized_pnl > 0 %}positive{% elif financial_stats.realized_pnl < 0 %}negative{% else %}neutral{% endif %}">
+        <h3>📊 Realized P&L</h3>
+        {% set pnl = financial_stats.realized_pnl %}
+        <p class="value mono">
+            {% if pnl > 0 %}+{% endif %}{{ currency_symbol }}{{ "%.2f"|format(pnl) }}
+        </p>
+        {% if financial_stats.total_invested > 0 %}
+            <span class="performance-indicator {% if pnl > 0 %}up{% else %}down{% endif %}" style="margin-top: 0.5rem; display: inline-block;">
+                {% if pnl > 0 %}↑{% else %}↓{% endif %} {{ "%.1f"|format((pnl / financial_stats.total_invested) * 100) }}%
+            </span>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card {% if financial_stats.roi_percent > 0 %}positive{% elif financial_stats.roi_percent < 0 %}negative{% else %}neutral{% endif %}">
+        <h3>📈 ROI</h3>
+        {% set roi = financial_stats.roi_percent %}
+        <p class="value mono">
+            {% if roi > 0 %}+{% endif %}{{ "%.2f"|format(roi) }}%
+        </p>
+    </div>
+    
+    <div class="stat-card cyan">
+        <h3>🎯 Win Rate</h3>
+        <p class="value mono">{{ "%.1f"|format(financial_stats.win_rate) }}%</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+            {{ financial_stats.profitable_trades }}/{{ financial_stats.total_trades }} trades
+        </p>
+    </div>
+    
+    <div class="stat-card {% if financial_stats.avg_trade_pnl > 0 %}positive{% elif financial_stats.avg_trade_pnl < 0 %}negative{% else %}neutral{% endif %}">
+        <h3>⚡ Avg Trade P&L</h3>
+        {% set avg_pnl = financial_stats.avg_trade_pnl %}
+        <p class="value mono">
+            {% if avg_pnl > 0 %}+{% endif %}{{ currency_symbol }}{{ "%.2f"|format(avg_pnl) }}
+        </p>
+    </div>
+</div>
+
+<!-- Additional Performance Metrics -->
+<div class="metrics-grid">
+    <div class="metric-item">
+        <div class="metric-label">Total Fees</div>
+        <div class="metric-value">{{ currency_symbol }}{{ "%.2f"|format(financial_stats.total_fees) }}</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-label">Total Transactions</div>
+        <div class="metric-value">{{ financial_stats.total_purchases + financial_stats.total_sales }}</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-label">Avg Investment</div>
+        <div class="metric-value">
+            {% if financial_stats.total_purchases > 0 %}
+                {{ currency_symbol }}{{ "%.2f"|format(financial_stats.total_invested / financial_stats.total_purchases) }}
+            {% else %}
+                {{ currency_symbol }}0.00
+            {% endif %}
+        </div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-label">Avg Revenue</div>
+        <div class="metric-value">
+            {% if financial_stats.total_sales > 0 %}
+                {{ currency_symbol }}{{ "%.2f"|format(financial_stats.total_revenue / financial_stats.total_sales) }}
+            {% else %}
+                {{ currency_symbol }}0.00
+            {% endif %}
+        </div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-label">Profit Margin</div>
+        <div class="metric-value">
+            {% if financial_stats.total_revenue > 0 %}
+                {{ "%.1f"|format((financial_stats.realized_pnl / financial_stats.total_revenue) * 100) }}%
+            {% else %}
+                0.0%
+            {% endif %}
+        </div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-label">Fee Ratio</div>
+        <div class="metric-value">
+            {% if financial_stats.total_revenue > 0 %}
+                {{ "%.1f"|format((financial_stats.total_fees / financial_stats.total_revenue) * 100) }}%
+            {% else %}
+                0.0%
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- K-Line Chart -->
+{% if kline_data %}
+<div class="chart-container">
+    <h2 class="csgo-section-title" style="margin-bottom: 1.5rem;">📈 PORTFOLIO PERFORMANCE</h2>
+    <canvas id="klineChart" style="max-height: 400px;"></canvas>
+</div>
+
+<script>
+    const klineData = {{ kline_data | tojson }};
+    const dates = klineData.map(d => d.date);
+    const pnlData = klineData.map(d => d.pnl);
+    const investedData = klineData.map(d => d.invested);
+    const revenueData = klineData.map(d => d.revenue);
+
+    const ctx = document.getElementById('klineChart').getContext('2d');
+    
+    // Set Chart.js default colors to match theme - Vibrant CSGO Colors
+    Chart.defaults.color = '#888888';
+    Chart.defaults.borderColor = 'rgba(0, 255, 65, 0.3)';
+    Chart.defaults.backgroundColor = 'rgba(0, 255, 65, 0.1)';
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Cumulative P&L',
+                    data: pnlData,
+                    borderColor: '#00ff41',
+                    backgroundColor: 'rgba(0, 255, 65, 0.2)',
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: '#00ff41',
+                    pointBorderColor: '#000000',
+                    pointBorderWidth: 3,
+                    pointHoverBorderWidth: 4,
+                    pointHoverBackgroundColor: '#00ff41',
+                    pointHoverBorderColor: '#ffffff'
+                },
+                {
+                    label: 'Total Invested',
+                    data: investedData,
+                    borderColor: '#ff006e',
+                    backgroundColor: 'rgba(255, 0, 110, 0.2)',
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: '#ff006e',
+                    pointBorderColor: '#000000',
+                    pointBorderWidth: 3,
+                    pointHoverBorderWidth: 4,
+                    pointHoverBackgroundColor: '#ff006e',
+                    pointHoverBorderColor: '#ffffff'
+                },
+                {
+                    label: 'Total Revenue',
+                    data: revenueData,
+                    borderColor: '#8338ec',
+                    backgroundColor: 'rgba(131, 56, 236, 0.2)',
+                    borderWidth: 4,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: '#8338ec',
+                    pointBorderColor: '#000000',
+                    pointBorderWidth: 3,
+                    pointHoverBorderWidth: 4,
+                    pointHoverBackgroundColor: '#8338ec',
+                    pointHoverBorderColor: '#ffffff'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: {
+                            family: 'JetBrains Mono',
+                            size: 13,
+                            weight: '700'
+                        },
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 12,
+                        boxHeight: 12
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    titleColor: '#00ff41',
+                    bodyColor: '#e0e0e0',
+                    borderColor: '#00ff41',
+                    borderWidth: 2,
+                    padding: 15,
+                    titleFont: {
+                        family: 'JetBrains Mono',
+                        size: 14,
+                        weight: '700'
+                    },
+                    bodyFont: {
+                        family: 'JetBrains Mono',
+                        size: 13,
+                        weight: '600'
+                    },
+                    boxPadding: 8,
+                    cornerRadius: 4,
+                    displayColors: true,
+                    callbacks: {
+                        labelColor: function(context) {
+                            return {
+                                borderColor: context.dataset.borderColor,
+                                backgroundColor: context.dataset.borderColor
+                            };
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(0, 255, 65, 0.15)',
+                        borderColor: 'rgba(0, 255, 65, 0.3)',
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        color: '#888888',
+                        font: {
+                            family: 'JetBrains Mono',
+                            size: 11,
+                            weight: '600'
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: 'rgba(0, 255, 65, 0.15)',
+                        borderColor: 'rgba(0, 255, 65, 0.3)',
+                        lineWidth: 1
+                    },
+                    ticks: {
+                        color: '#888888',
+                        font: {
+                            family: 'JetBrains Mono',
+                            size: 11,
+                            weight: '600'
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+
+<!-- Transaction History -->
+<div style="margin: 3rem 0;">
+    <h2 class="csgo-section-title">📊 TRANSACTION HISTORY</h2>
+    
+    <!-- Purchases Table -->
+    <h3 class="section-title purchase">📉 Purchases ({{ financial_stats.total_purchases }})</h3>
     <table>
         <thead>
             <tr>
-                <th>Total Investment</th>
-                <th>Current Market Value</th>
-                <th>Realized PnL</th>
-                <th>Unrealized PnL</th>
-                <th>Total PnL</th>
-                <th>ROI</th>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Exterior</th>
+                <th>Platform</th>
+                <th>Price</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in portfolios %}
+            {% for purchase in purchases %}
             <tr>
-                <td>{{ "%.2f"|format(row.total_investment or 0) }}</td>
-                <td>{{ "%.2f"|format(row.total_market_value or 0) }}</td>
-                
-                {% set realized_pnl = row.total_realized_pnl or 0 %}
-                {% if realized_pnl > 0 %}
-                    <td style="color: green;">+{{ "%.2f"|format(realized_pnl) }}</td>
-                {% else %}
-                    <td style="color: red;">{{ "%.2f"|format(realized_pnl) }}</td>
-                {% endif %}
-
-                {% set unrealized_pnl = row.total_unrealized_pnl or 0 %}
-                {% if unrealized_pnl > 0 %}
-                    <td style="color: green;">+{{ "%.2f"|format(unrealized_pnl) }}</td>
-                {% else %}
-                    <td style="color: red;">{{ "%.2f"|format(unrealized_pnl) }}</td>
-                {% endif %}
-
-                {% set total_pnl = row.total_pnl or 0 %}
-                {% if total_pnl > 0 %}
-                    <td style="color: green; font-weight: bold;">+{{ "%.2f"|format(total_pnl) }}</td>
-                {% else %}
-                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(total_pnl) }}</td>
-                {% endif %}
-                
-                {% set roi = row.roi_percent or 0 %}
-                {% if roi > 0 %}
-                    <td style="color: green; font-weight: bold;">{{ "%.2f"|format(roi) }}%</td>
-                {% else %}
-                    <td style="color: red; font-weight: bold;">{{ "%.2f"|format(roi) }}%</td>
-                {% endif %}
+                <td class="mono" style="color: var(--text-muted);">{{ purchase.ts.strftime('%Y-%m-%d %H:%M') if purchase.ts else 'N/A' }}</td>
+                <td>{{ purchase.market_name }}</td>
+                <td style="color: var(--text-secondary);">{{ purchase.exterior }}</td>
+                <td style="color: var(--text-secondary);">{{ purchase.platform_name }}</td>
+                <td class="mono glow-pink" style="font-weight: 700;">-{{ currency_symbol }}{{ "%.2f"|format(purchase.price) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="6">You have no portfolio data yet. Add a purchase to get started.</td></tr>
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No purchases recorded yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
+    
+    <!-- Sales Table -->
+    <h3 class="section-title sale" style="margin-top: 3rem;">📈 Sales ({{ financial_stats.total_sales }})</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Exterior</th>
+                <th>Platform</th>
+                <th>Price</th>
+                <th>Fee</th>
+                <th>Net Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td class="mono" style="color: var(--text-muted);">{{ sale.ts.strftime('%Y-%m-%d %H:%M') if sale.ts else 'N/A' }}</td>
+                <td>{{ sale.market_name }}</td>
+                <td style="color: var(--text-secondary);">{{ sale.exterior }}</td>
+                <td style="color: var(--text-secondary);">{{ sale.platform_name }}</td>
+                <td class="mono" style="color: var(--text-secondary);">{{ currency_symbol }}{{ "%.2f"|format(sale.price) }}</td>
+                <td class="mono" style="color: var(--text-muted);">-{{ currency_symbol }}{{ "%.2f"|format(sale.fee) }}</td>
+                <td class="mono glow-green" style="font-weight: 700;">+{{ currency_symbol }}{{ "%.2f"|format(sale.net_revenue) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No sales recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 {% endblock %}
