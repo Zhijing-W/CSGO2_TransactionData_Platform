@@ -2,50 +2,921 @@
 
 {% block title %}Holdings for {{ current_user.display_name }}{% endblock %}
 
-{% block content %}
-    <h1>Holdings for {{ current_user.display_name }}</h1>
-    <p>This page shows all items you currently hold, their average cost, current market value, and unrealized profit/loss.</p>
+{% block extra_css %}
+<style>
+    /* CSGO Hacker Style - Matching Login */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
 
-    <table>
-        <thead>
-            <tr>
-                <th>Item Name</th>
-                <th>Exterior</th>
-                <th>Qty Held</th>
-                <th>Avg. Buy Cost</th>
-                <th>Current Market Price</th>
-                <th>Unrealized PnL</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in holdings %}
-            <tr>
-                <td>
-                    <a href="{{ url_for('item_detail', item_id=item.item_id) }}">
-                        {{ item.market_name }}
-                    </a>
-                </td>
-                <td>{{ item.exterior }}</td>
-                <td>{{ item.quantity_held }}</td>
-                <td>{{ "%.2f"|format(item.avg_buy_cost or 0) }}</td>
-                <td>{{ "%.2f"|format(item.market_price or 0) }}</td>
+    .page-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 2.5rem;
+        margin: 0;
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-yellow) 25%, var(--neon-orange) 50%, var(--neon-pink) 75%, var(--neon-purple) 100%);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 3s ease infinite;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        font-weight: 900;
+    }
+
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .currency-selector {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .currency-selector label {
+        color: var(--hacker-green);
+        margin-right: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+    }
+
+    .currency-selector select {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        color: var(--hacker-green);
+        font-weight: 700;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-family: 'JetBrains Mono', monospace;
+        transition: all 0.3s ease;
+    }
+
+    .currency-selector select:hover {
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+    }
+
+    .currency-selector select:focus {
+        outline: none;
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+    }
+
+    /* Collapsible Control Panel - CSGO Style */
+    .control-panel {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.2),
+                    inset 0 0 20px rgba(0, 255, 65, 0.05);
+        position: relative;
+    }
+
+    .control-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+        animation: scan 3s infinite;
+    }
+
+    .control-header {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-tertiary);
+        border-bottom: 2px solid var(--hacker-green);
+        position: relative;
+        z-index: 1;
+    }
+
+    .control-btn {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 2px;
+        transition: all 0.3s ease;
+        position: relative;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .control-btn::before {
+        content: '>';
+        position: absolute;
+        left: 0.5rem;
+        opacity: 0;
+        color: var(--hacker-green);
+        transition: all 0.3s ease;
+    }
+
+    .control-btn:hover {
+        background: var(--bg-secondary);
+        border-color: var(--hacker-green);
+        color: var(--hacker-green);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        padding-left: 2rem;
+    }
+
+    .control-btn:hover::before {
+        opacity: 1;
+    }
+
+    .control-btn.active {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+        border-color: var(--hacker-green);
+        color: var(--hacker-green);
+        box-shadow: 0 0 30px rgba(131, 56, 236, 0.4),
+                    0 0 20px rgba(0, 255, 65, 0.3);
+    }
+
+    .control-btn.active::after {
+        content: ' ▼';
+        font-size: 0.7rem;
+    }
+
+    .control-content {
+        display: none;
+        padding: 1.5rem;
+        background: var(--bg-primary);
+        border-top: 2px solid var(--hacker-green);
+        position: relative;
+        z-index: 1;
+    }
+
+    .control-content.active {
+        display: block;
+    }
+
+    .control-content h4 {
+        color: var(--hacker-green);
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-bottom: 2px solid var(--hacker-green);
+        padding-bottom: 0.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-group label {
+        color: var(--hacker-green);
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.75rem;
+        color: var(--text-primary);
+        font-family: 'JetBrains Mono', monospace;
+        transition: all 0.3s ease;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+        outline: none;
+        border-color: var(--hacker-green);
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.4),
+                    inset 0 0 10px rgba(0, 255, 65, 0.1);
+        background: var(--bg-secondary);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--csgo-border-dim);
+    }
+
+    .btn {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+        border: 2px solid var(--hacker-green);
+        color: var(--hacker-green);
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        padding: 0.75rem 2rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.85rem;
+        font-family: 'JetBrains Mono', monospace;
+        box-shadow: 0 0 30px rgba(131, 56, 236, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(0, 255, 65, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 50px rgba(131, 56, 236, 0.6),
+                    0 0 30px rgba(0, 255, 65, 0.4);
+        border-color: var(--neon-pink);
+    }
+
+    .btn:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-clear {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-color);
+        color: var(--text-muted);
+    }
+
+    .btn-clear:hover {
+        background: var(--bg-secondary);
+        border-color: var(--hacker-green);
+        color: var(--hacker-green);
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+    }
+
+    /* Sort Options */
+    .sort-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .sort-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Holdings Cards - CSGO Style */
+    .holdings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .holding-card {
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr;
+        gap: 1.5rem;
+        align-items: center;
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.2),
+                    inset 0 0 20px rgba(0, 255, 65, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .holding-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+        animation: scan 3s infinite;
+    }
+
+    .holding-card:hover {
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 50px rgba(255, 0, 110, 0.4),
+                    0 0 30px rgba(0, 255, 65, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .holding-card-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .holding-card-name {
+        color: var(--hacker-green);
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-decoration: none;
+        font-family: 'JetBrains Mono', monospace;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        transition: all 0.3s ease;
+    }
+
+    .holding-card-name:hover {
+        color: var(--neon-pink);
+        text-shadow: 0 0 15px rgba(255, 0, 110, 0.8);
+        text-decoration: underline;
+    }
+
+    .holding-card-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .item-name {
+        color: var(--csgo-green-bright);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .item-name:hover {
+        color: var(--csgo-green);
+        text-decoration: underline;
+    }
+
+    .exterior-badge {
+        display: inline-block;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: var(--text-primary);
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .rarity-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+        border: 1px solid var(--hacker-green);
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: var(--hacker-green);
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 0 15px rgba(131, 56, 236, 0.3);
+    }
+
+    .price-cell {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        color: var(--hacker-green);
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        font-size: 1.1rem;
+    }
+
+    .purchase-details {
+        font-size: 0.85rem;
+        color: var(--csgo-text-dim);
+    }
+
+    .purchase-details-item {
+        margin-bottom: 0.5rem;
+        padding: 0.4rem;
+        background: var(--csgo-black);
+        border-left: 2px solid var(--csgo-border-dim);
+        padding-left: 0.6rem;
+    }
+
+    .purchase-details-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .purchase-details-label {
+        color: var(--csgo-text-dim);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-right: 0.5rem;
+    }
+
+    .purchase-details-value {
+        color: var(--csgo-text);
+    }
+
+    .purchase-details-value.platform {
+        color: var(--csgo-green-bright);
+    }
+
+    .purchase-details-value.price {
+        color: var(--csgo-green);
+        font-weight: 700;
+    }
+
+    .stats-display {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+    }
+
+    .stats-display strong {
+        color: var(--hacker-green);
+        font-weight: 900;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-muted);
+        background: var(--bg-secondary);
+        border: 2px solid var(--hacker-green);
+        border-radius: 8px;
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.2);
+    }
+
+    .empty-state p {
+        margin: 0.5rem 0;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .empty-state a {
+        color: var(--hacker-green);
+        text-decoration: none;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .empty-state a:hover {
+        color: var(--neon-pink);
+        text-shadow: 0 0 10px rgba(255, 0, 110, 0.8);
+        text-decoration: underline;
+    }
+
+    /* Action badges - CSGO Style */
+    .action-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .action-badge.hold {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+        border: 2px solid var(--hacker-green);
+        color: var(--hacker-green);
+        box-shadow: 0 0 20px rgba(131, 56, 236, 0.3);
+    }
+
+    .action-badge.hold:hover {
+        box-shadow: 0 0 30px rgba(131, 56, 236, 0.5),
+                    0 0 20px rgba(0, 255, 65, 0.4);
+    }
+
+    .action-badge.sell {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.25rem 0.6rem;
+        font-size: 0.6rem;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    .action-badge.sell:hover {
+        background: var(--bg-secondary);
+        border-color: var(--hacker-green);
+        color: var(--hacker-green);
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+    }
+
+    .action-badge.selled {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        cursor: default;
+        opacity: 0.7;
+    }
+
+    .transaction-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .transaction-info-item {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-primary);
+        padding: 0.3rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .transaction-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .transaction-info-label {
+        color: var(--text-muted);
+        margin-right: 0.5rem;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+    }
+
+    .transaction-info-value {
+        color: var(--hacker-green);
+        font-weight: 700;
+        text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set currency_symbol = "$" %}
+{% if current_currency == "EUR" %}
+    {% set currency_symbol = "€" %}
+{% elif current_currency == "CNY" %}
+    {% set currency_symbol = "¥" %}
+{% elif current_currency == "JPY" %}
+    {% set currency_symbol = "¥" %}
+{% endif %}
+
+<div class="page-header">
+    <h1 class="page-title">⚔️ HOLDINGS</h1>
+    
+    <div class="currency-selector">
+        <form action="{{ url_for('holdings') }}" method="get" style="margin: 0; display: flex; align-items: center;" id="currencyForm">
+            <input type="hidden" name="search" value="{{ search_query }}">
+            <input type="hidden" name="rarity" value="{{ rarity_filter }}">
+            <input type="hidden" name="exterior" value="{{ exterior_filter }}">
+            <input type="hidden" name="price_min" value="{{ price_min }}">
+            <input type="hidden" name="price_max" value="{{ price_max }}">
+            <input type="hidden" name="date_from" value="{{ date_from }}">
+            <input type="hidden" name="date_to" value="{{ date_to }}">
+            <input type="hidden" name="action" value="{{ action_filter }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <label for="currency">Currency:</label>
+            <select name="currency" id="currency" onchange="this.form.submit()">
+                <option value="USD" {% if current_currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                <option value="EUR" {% if current_currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                <option value="CNY" {% if current_currency == 'CNY' %}selected{% endif %}>CNY (¥)</option>
+                <option value="JPY" {% if current_currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if current_currency != 'USD' %}
+    <p style="color: var(--csgo-text-dim); font-size: 0.85em; text-align: right; margin-top: 0; font-family: 'JetBrains Mono', monospace;">
+        Exchange Rate: 1 USD ≈ {{ "%.4f"|format(exchange_rate) }} {{ current_currency }}
+    </p>
+{% endif %}
+
+<!-- Control Panel: Search, Filter, Sort -->
+<div class="control-panel">
+    <div class="control-header">
+        <button type="button" class="control-btn" onclick="toggleControl('search')" id="btn-search">
+            🔍 Search
+        </button>
+        <button type="button" class="control-btn" onclick="toggleControl('filter')" id="btn-filter">
+            🎯 Filter
+        </button>
+        <button type="button" class="control-btn" onclick="toggleControl('sort')" id="btn-sort">
+            ↕️ Sort
+        </button>
+    </div>
+
+    <!-- Search Panel -->
+    <div class="control-content" id="content-search">
+        <h4>Search Items</h4>
+        <form method="get" action="{{ url_for('holdings') }}" id="searchForm">
+            <input type="hidden" name="currency" value="{{ current_currency }}">
+            <input type="hidden" name="rarity" value="{{ rarity_filter }}">
+            <input type="hidden" name="exterior" value="{{ exterior_filter }}">
+            <input type="hidden" name="price_min" value="{{ price_min }}">
+            <input type="hidden" name="price_max" value="{{ price_max }}">
+            <input type="hidden" name="date_from" value="{{ date_from }}">
+            <input type="hidden" name="date_to" value="{{ date_to }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <div class="filter-group">
+                <label for="search">Item Name</label>
+                <input type="text" id="search" name="search" value="{{ search_query }}" placeholder="Enter item name...">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn">Apply Search</button>
+                <a href="{{ url_for('holdings', currency=current_currency, sort_by=sort_by, sort_order=sort_order) }}" style="text-decoration: none;">
+                    <button type="button" class="btn btn-clear">Clear</button>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="control-content" id="content-filter">
+        <h4>Filter Options</h4>
+        <form method="get" action="{{ url_for('holdings') }}" id="filterForm">
+            <input type="hidden" name="currency" value="{{ current_currency }}">
+            <input type="hidden" name="search" value="{{ search_query }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="rarity">Rarity</label>
+                    <select id="rarity" name="rarity">
+                        <option value="">All Rarities</option>
+                        {% for rarity in all_rarities %}
+                            <option value="{{ rarity }}" {% if rarity_filter == rarity %}selected{% endif %}>{{ rarity }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 
-                {% set pnl = item.unrealized_pnl or 0 %}
-                {% if pnl > 0 %}
-                    <td style="color: green;">
-                        +{{ "%.2f"|format(pnl) }}
-                    </td>
+                <div class="filter-group">
+                    <label for="exterior">Exterior (Wear)</label>
+                    <select id="exterior" name="exterior">
+                        <option value="">All Exteriors</option>
+                        <option value="Factory New" {% if exterior_filter == 'Factory New' %}selected{% endif %}>Factory New</option>
+                        <option value="Minimal Wear" {% if exterior_filter == 'Minimal Wear' %}selected{% endif %}>Minimal Wear</option>
+                        <option value="Field-Tested" {% if exterior_filter == 'Field-Tested' %}selected{% endif %}>Field-Tested</option>
+                        <option value="Well-Worn" {% if exterior_filter == 'Well-Worn' %}selected{% endif %}>Well-Worn</option>
+                        <option value="Battle-Scarred" {% if exterior_filter == 'Battle-Scarred' %}selected{% endif %}>Battle-Scarred</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="price_min">Min Price ({{ currency_symbol }})</label>
+                    <input type="number" step="0.01" id="price_min" name="price_min" value="{{ price_min }}" placeholder="0.00">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="price_max">Max Price ({{ currency_symbol }})</label>
+                    <input type="number" step="0.01" id="price_max" name="price_max" value="{{ price_max }}" placeholder="9999.99">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_from">Purchase Date From</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_to">Purchase Date To</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="action">Action</label>
+                    <select id="action" name="action">
+                        <option value="">All Actions</option>
+                        <option value="hold" {% if action_filter == 'hold' %}selected{% endif %}>Hold</option>
+                        <option value="selled" {% if action_filter == 'selled' %}selected{% endif %}>Selled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn">Apply Filters</button>
+                <a href="{{ url_for('holdings', currency=current_currency, search=search_query, sort_by=sort_by, sort_order=sort_order) }}" style="text-decoration: none;">
+                    <button type="button" class="btn btn-clear">Clear Filters</button>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sort Panel -->
+    <div class="control-content" id="content-sort">
+        <h4>Sort Options</h4>
+        <form method="get" action="{{ url_for('holdings') }}" id="sortForm">
+            <input type="hidden" name="currency" value="{{ current_currency }}">
+            <input type="hidden" name="search" value="{{ search_query }}">
+            <input type="hidden" name="rarity" value="{{ rarity_filter }}">
+            <input type="hidden" name="exterior" value="{{ exterior_filter }}">
+            <input type="hidden" name="price_min" value="{{ price_min }}">
+            <input type="hidden" name="price_max" value="{{ price_max }}">
+            <input type="hidden" name="date_from" value="{{ date_from }}">
+            <input type="hidden" name="date_to" value="{{ date_to }}">
+            <input type="hidden" name="action" value="{{ action_filter }}">
+            <div class="sort-options">
+                <div class="sort-group">
+                    <label for="sort_by">Sort By</label>
+                    <select id="sort_by" name="sort_by" onchange="this.form.submit()">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Item Name</option>
+                        <option value="price" {% if sort_by == 'price' %}selected{% endif %}>Current Price</option>
+                        <option value="quantity" {% if sort_by == 'quantity' %}selected{% endif %}>Quantity</option>
+                        <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Purchase Date</option>
+                        <option value="action" {% if sort_by == 'action' %}selected{% endif %}>Action</option>
+                    </select>
+                </div>
+                <div class="sort-group">
+                    <label for="sort_order">Order</label>
+                    <select id="sort_order" name="sort_order" onchange="this.form.submit()">
+                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descending</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Holdings List -->
+{% if holdings %}
+    <div class="stats-display">
+        📊 Showing <strong>{{ holdings|length }}</strong> item(s) in your portfolio
+    </div>
+    
+    <div class="holdings-list">
+        {% for holding in holdings %}
+        <div class="holding-card">
+            <div class="holding-card-header">
+                <a href="{{ url_for('item_detail', item_id=holding.item_id) }}" class="holding-card-name">
+                    {{ holding.market_name }}
+                </a>
+                <div class="holding-card-meta">
+                    <span class="exterior-badge">{{ holding.exterior }}</span>
+                    {% if holding.rarity and holding.rarity != 'N/A' %}
+                        <span class="rarity-badge">{{ holding.rarity }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="price-cell" style="text-align: center;">
+                {% if holding.market_price > 0 %}
+                    {{ currency_symbol }}{{ "%.2f"|format(holding.market_price) }}
                 {% else %}
-                    <td style="color: red;">
-                        {{ "%.2f"|format(pnl) }}
-                    </td>
+                    <span style="color: var(--csgo-text-dim);">N/A</span>
                 {% endif %}
-            </tr>
+            </div>
+            
+            <div class="transaction-info">
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Buy:</span>
+                    <span class="transaction-info-value">
+                        {% if holding.purchases %}
+                            {{ currency_symbol }}{{ "%.2f"|format(holding.purchases[0].purchase_price) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Sell:</span>
+                    <span class="transaction-info-value">
+                        {% if holding.sales %}
+                            {{ currency_symbol }}{{ "%.2f"|format(holding.sales[0].sale_price) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="transaction-info">
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Buy Date:</span>
+                    <span class="transaction-info-value" style="font-size: 0.75rem;">
+                        {% if holding.purchases %}
+                            {{ holding.purchases[0].purchase_time }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="transaction-info-item">
+                    <span class="transaction-info-label">Sell Date:</span>
+                    <span class="transaction-info-value" style="font-size: 0.75rem;">
+                        {% if holding.sales %}
+                            {{ holding.sales[0].sale_time }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                {% if holding.action == 'hold' %}
+                    <span class="action-badge hold">HOLD</span>
+                    <a href="{{ url_for('transaction_new_form') }}?action=sell&item_id={{ holding.item_id }}&market_name={{ holding.market_name|urlencode }}&exterior={{ holding.exterior|urlencode }}" 
+                       class="action-badge sell">TO SELL</a>
+                {% elif holding.action == 'selled' %}
+                    <span class="action-badge selled">SELLED</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--csgo-text);">
+            {% if search_query or rarity_filter or exterior_filter or price_min or price_max or date_from or date_to %}
+                No items match your filters.
             {% else %}
-            <tr>
-                <td colspan="6">You are not currently holding any items. Add a purchase to get started.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                No items in your holdings yet.
+            {% endif %}
+        </p>
+        <p style="font-size: 0.9rem; color: var(--csgo-text-dim);">
+            {% if search_query or rarity_filter or exterior_filter or price_min or price_max or date_from or date_to %}
+                <a href="{{ url_for('holdings', currency=current_currency) }}">Clear filters</a> or add a purchase to get started!
+            {% else %}
+                Add a purchase to get started!
+            {% endif %}
+        </p>
+    </div>
+{% endif %}
+
+<script>
+function toggleControl(type) {
+    const btn = document.getElementById('btn-' + type);
+    const content = document.getElementById('content-' + type);
+    
+    // Toggle active state
+    const isActive = btn.classList.contains('active');
+    
+    // Close all
+    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.control-content').forEach(c => c.classList.remove('active'));
+    
+    // Open clicked one if it wasn't active
+    if (!isActive) {
+        btn.classList.add('active');
+        content.classList.add('active');
+    }
+}
+
+// Auto-open if there are active filters
+document.addEventListener('DOMContentLoaded', function() {
+    {% if search_query %}
+        toggleControl('search');
+    {% elif rarity_filter or exterior_filter or price_min or price_max or date_from or date_to %}
+        toggleControl('filter');
+    {% endif %}
+});
+</script>
+
 {% endblock %}

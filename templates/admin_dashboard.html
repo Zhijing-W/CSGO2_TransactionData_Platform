@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h1>🔐 Admin Dashboard</h1>
+<p style="color: #666;">Manage users, items, and system statistics.</p>
+
+<!-- Statistics Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0;">
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+        <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Total Users</h3>
+        <p style="margin: 0; font-size: 2em; font-weight: bold; color: #333;">{{ stats.total_users }}</p>
+    </div>
+    
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+        <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Total Items</h3>
+        <p style="margin: 0; font-size: 2em; font-weight: bold; color: #333;">{{ stats.total_items }}</p>
+    </div>
+    
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+        <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Total Purchases</h3>
+        <p style="margin: 0; font-size: 2em; font-weight: bold; color: #28a745;">{{ stats.total_purchases }}</p>
+    </div>
+    
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+        <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Total Sales</h3>
+        <p style="margin: 0; font-size: 2em; font-weight: bold; color: #dc3545;">{{ stats.total_sales }}</p>
+    </div>
+    
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f8f9fa;">
+        <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Price Snapshots</h3>
+        <p style="margin: 0; font-size: 2em; font-weight: bold; color: #333;">{{ stats.total_snapshots }}</p>
+    </div>
+</div>
+
+<!-- Users Management -->
+<div style="margin: 40px 0;">
+    <h2>👥 User Management</h2>
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th>User ID</th>
+                <th>Email</th>
+                <th>Display Name</th>
+                <th>Admin</th>
+                <th>Purchases</th>
+                <th>Sales</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.user_id }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.display_name }}</td>
+                <td>
+                    {% if user.is_admin %}
+                        <span style="color: #28a745; font-weight: bold;">✓ Admin</span>
+                    {% else %}
+                        <span style="color: #666;">User</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.purchase_count }}</td>
+                <td>{{ user.sale_count }}</td>
+                <td>
+                    {% if user.user_id != current_user.id %}
+                        <form action="{{ url_for('toggle_user_admin', user_id=user.user_id) }}" method="post" style="display: inline;">
+                            <button type="submit" style="padding: 5px 10px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px;">
+                                {% if user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}
+                            </button>
+                        </form>
+                    {% else %}
+                        <span style="color: #666;">(Current User)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align: center;">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Items Management -->
+<div style="margin: 40px 0;">
+    <h2>📦 Items Database (Latest 100)</h2>
+    <p style="color: #666; font-size: 0.9em;">Showing the most recently added items. Total items in database: {{ stats.total_items }}</p>
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th>Item ID</th>
+                <th>Market Name</th>
+                <th>Game</th>
+                <th>Rarity</th>
+                <th>Exterior</th>
+                <th>Purchases</th>
+                <th>Sales</th>
+                <th>Latest Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.item_id }}</td>
+                <td>{{ item.market_name }}</td>
+                <td>{{ item.game or 'N/A' }}</td>
+                <td>{{ item.rarity or 'N/A' }}</td>
+                <td>{{ item.exterior or 'N/A' }}</td>
+                <td>{{ item.purchase_count }}</td>
+                <td>{{ item.sale_count }}</td>
+                <td>
+                    {% if item.latest_price %}
+                        ${{ "%.2f"|format(item.latest_price) }}
+                    {% else %}
+                        <span style="color: #666;">N/A</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align: center;">No items found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin: 40px 0; padding: 20px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+    <h3 style="margin-top: 0;">⚠️ Admin Setup Instructions</h3>
+    <p><strong>If you're seeing this page but don't have admin privileges, you need to set up admin access:</strong></p>
+    <ol>
+        <li><strong>Add the is_admin column to your database:</strong>
+            <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">ALTER TABLE Users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;</pre>
+        </li>
+        <li><strong>Set yourself (or another user) as admin:</strong>
+            <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;">UPDATE Users SET is_admin = true WHERE email = 'your_email@example.com';</pre>
+            Replace <code>your_email@example.com</code> with your actual email address.
+        </li>
+        <li><strong>Log out and log back in</strong> for the changes to take effect.</li>
+    </ol>
+    <p><strong>Or use the SQL script:</strong> Run <code>setup_admin.sql</code> in your database.</p>
+    <hr style="margin: 20px 0;">
+    <h4>Other Notes:</h4>
+    <ul>
+        <li>Price updates run every 6 hours automatically in the background.</li>
+        <li>Users can only sell items they have purchased (holdings validation).</li>
+        <li>Once you have admin access, you can toggle admin status for other users using the buttons above.</li>
+    </ul>
+</div>
+
+{% endblock %}
+
