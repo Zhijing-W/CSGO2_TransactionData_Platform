@@ -5,6 +5,14 @@
 
 ## 1\. Live Application & Database Info
 
+### Video Demo
+
+Click the image below to watch the walkthrough:
+
+[![CS2 Portfolio Tracker Demo](https://img.youtube.com/vi/wjQ3T_DqF9Y/0.jpg)](https://youtu.be/wjQ3T_DqF9Y)
+
+> **Note:** If the video does not play, you can access it directly via this link: https://youtu.be/wjQ3T_DqF9Y
+
 ### Live Application URL
 
 This application has been deployed on our Google Cloud VM and is running 24/7 in a `screen` session for grading.
@@ -24,6 +32,7 @@ The PostgreSQL account used for this project is:
 To demonstrate the application's full capabilities (including the Portfolio Dashboard), you can log in with the following pre-populated demo account:
 
   * **Email:** `zw3155@columbia.edu`
+  * **Username:** `Philip`
   * **Password:** `123456789`
 
 This account has been pre-populated with sample `Purchase` and `Sale` data to make the `Dashboard` and `Holdings` pages functional for demonstration.
