@@ -91,18 +91,3 @@ As required by the Part 3 `README` guidelines, these are the two web pages that 
     5.  `portfolio_calcs`: Uses a `FULL OUTER JOIN` to combine all previous CTEs, calculating `realized_pnl` (from sales) and `unrealized_pnl` (from current holdings) for every item the user has ever touched.
     6.  **Final `SELECT`:** The main query then aggregates all calculations from `portfolio_calcs` into a single row for the user, calculating final `total_pnl` and `roi_percent` (using a `CASE` statement to prevent division-by-zero errors).
   * **Why it's interesting:** This single query demonstrates mastery of advanced SQL concepts to build a complex financial report. It uses `WITH` clauses for modularity, `DISTINCT ON` for price-finding, `FULL OUTER JOIN` to correctly combine purchase/sale histories, and `CASE` statements for safe division.
-
-## 6\. Future Work
-While this project successfully fulfills the Part 1 proposal, we have identified several areas for future enhancement:
-
-1. Implement "Add Sale" Form: Add a form for users to log Sale transactions, which would complete the portfolio loop and allow Realized PnL to be calculated based on user sales.
-
-2. Optimize Primary Keys: Refactor the database schema to use SERIAL (auto-incrementing) primary keys instead of the current SELECT MAX(id) + 1 logic. This would dramatically improve INSERT performance and ensure transactional safety at scale.
-
-3. Multi-Currency Support: Integrate a real-time FX (Foreign Exchange) rate API to allow users to record purchases in different currencies (EUR, CNY, etc.) and see their portfolio value displayed in a single, user-selected currency (e.g., USD).
-
-4. Homepage Dashboard: Integrate external market APIs (e.g., Steam, CSFloat) to display a public-facing dashboard of the current top-selling items.
-
-5. Real-Time Valuation: Fetch live prices for all items in a user's portfolio to calculate an immediate "total liquidation value."
-
-6. UI/UX Enhancement: Implement data visualization (e.g., using Chart.js) to display PnL trends and holding distributions as interactive charts.
